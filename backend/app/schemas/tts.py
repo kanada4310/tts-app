@@ -7,7 +7,7 @@ class TTSRequest(BaseModel):
     text: str = Field(
         ...,
         min_length=1,
-        max_length=4096,
+        max_length=100000,  # Increased for multiple pages support
         description="Text to convert to speech"
     )
     voice: str = Field(

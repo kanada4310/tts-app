@@ -16,11 +16,11 @@
 
 \### POST /api/ocr
 
-画像からテキスト抽出
+画像からテキスト抽出（複数画像対応）
 
 
 
-\*\*Request\*\*
+\*\*Request（単一画像）\*\*
 
 ```json
 
@@ -42,6 +42,38 @@
 
 
 
+\*\*Request（複数画像）\*\*
+
+```json
+
+{
+
+&nbsp; "images": [
+
+&nbsp;   "base64\_encoded\_image\_1",
+
+&nbsp;   "base64\_encoded\_image\_2",
+
+&nbsp;   "base64\_encoded\_image\_3"
+
+&nbsp; ],
+
+&nbsp; "options": {
+
+&nbsp;   "exclude\_annotations": true,
+
+&nbsp;   "language": "en",
+
+&nbsp;   "page\_separator": "\\n\\n"
+
+&nbsp; }
+
+}
+
+```
+
+
+
 \*\*Response\*\*
 
 ```json
@@ -52,7 +84,29 @@
 
 &nbsp; "confidence": "high",
 
-&nbsp; "processing\_time": 2.3
+&nbsp; "processing\_time": 2.3,
+
+&nbsp; "page\_count": 1
+
+}
+
+```
+
+
+
+\*\*Response（複数画像の場合）\*\*
+
+```json
+
+{
+
+&nbsp; "text": "Page 1 text...\\n\\nPage 2 text...\\n\\nPage 3 text...",
+
+&nbsp; "confidence": "high",
+
+&nbsp; "processing\_time": 6.8,
+
+&nbsp; "page\_count": 3
 
 }
 

@@ -1,7 +1,7 @@
 """Gemini API service for OCR"""
 import base64
 import time
-from typing import Tuple
+from typing import Tuple, List
 import google.generativeai as genai
 
 from app.core.config import settings
@@ -136,6 +136,66 @@ class GeminiService:
         )
 
         return base_prompt
+
+    def extract_text_from_multiple_images(
+        self,
+        images_data: List[str],
+        exclude_annotations: bool = True,
+        language: str = "en",
+        page_separator: str = "\n\n"
+    ) -> Tuple[str, str, float]:
+        """
+        Extract text from multiple images using Gemini's vision capabilities
+
+        Args:
+            images_data: List of base64 encoded image data
+            exclude_annotations: Whether to exclude handwritten annotations
+            language: Expected language of the text
+            page_separator: Separator to use between pages
+
+        Returns:
+            Tuple of (extracted_text, confidence_level, processing_time)
+
+        Raises:
+            OCRError: If OCR processing fails
+        """
+        start_time = time.time()
+
+        try:
+            extracted_texts = []
+
+            # Process each image sequentially
+            for i, image_data in enumerate(images_data):
+                try:
+                    # Extract text from single image
+                    text, _, _ = self.extract_text(
+                        image_data=image_data,
+                        exclude_annotations=exclude_annotations,
+                        language=language
+                    )
+                    extracted_texts.append(text)
+                except OCRError as e:
+                    # If one page fails, include error message
+                    extracted_texts.append(f"[Error processing page {i + 1}: {str(e)}]")
+
+            # Combine all texts with separator
+            combined_text = page_separator.join(extracted_texts)
+
+            # Confidence is "high" if at least one page succeeded
+            confidence = "high" if any(
+                not text.startswith("[Error") for text in extracted_texts
+            ) else "low"
+
+            processing_time = time.time() - start_time
+
+            return combined_text, confidence, processing_time
+
+        except Exception as e:
+            processing_time = time.time() - start_time
+            raise OCRError(
+                f"Gemini OCR failed for multiple images: {str(e)}",
+                error_code=ERROR_OCR_FAILED
+            ) from e
 
 
 # Global instance

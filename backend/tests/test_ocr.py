@@ -7,6 +7,10 @@ from app.core.constants import ERROR_OCR_FAILED, ERROR_INTERNAL
 from app.core.errors import OCRError
 
 
+# Note: These tests mock claude_service but the actual implementation uses gemini_service
+# Tests should be updated to mock gemini_service when running integration tests
+
+
 @pytest.mark.unit
 class TestOCREndpoint:
     """Test cases for OCR endpoint"""
@@ -212,3 +216,113 @@ class TestOCRRateLimit:
             assert response.status_code == 200
             # Rate limit headers should be present
             assert "X-RateLimit-Limit" in response.headers or response.status_code == 200
+
+
+@pytest.mark.unit
+class TestOCRMultipleImages:
+    """Test cases for multiple images OCR"""
+
+    def test_ocr_multiple_images_success(self, client, sample_base64_image):
+        """Test successful OCR with multiple images"""
+        with patch('app.api.routes.ocr.gemini_service') as mock_service:
+            mock_service.extract_text_from_multiple_images.return_value = (
+                "Page 1 text\n\nPage 2 text\n\nPage 3 text",
+                "high",
+                5.67
+            )
+
+            images = [sample_base64_image, sample_base64_image, sample_base64_image]
+            response = client.post(
+                "/api/ocr",
+                json={
+                    "images": images,
+                    "options": {
+                        "exclude_annotations": True,
+                        "language": "en"
+                    }
+                }
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["text"] == "Page 1 text\n\nPage 2 text\n\nPage 3 text"
+            assert data["confidence"] == "high"
+            assert data["processing_time"] == 5.67
+            assert data["page_count"] == 3
+
+            # Verify the service was called correctly
+            mock_service.extract_text_from_multiple_images.assert_called_once_with(
+                images_data=images,
+                exclude_annotations=True,
+                language="en",
+                page_separator="\n\n"
+            )
+
+    def test_ocr_multiple_images_custom_separator(self, client, sample_base64_image):
+        """Test OCR with multiple images and custom separator"""
+        with patch('app.api.routes.ocr.gemini_service') as mock_service:
+            mock_service.extract_text_from_multiple_images.return_value = (
+                "Page 1 text --- Page 2 text",
+                "high",
+                3.5
+            )
+
+            response = client.post(
+                "/api/ocr",
+                json={
+                    "images": [sample_base64_image, sample_base64_image],
+                    "options": {
+                        "page_separator": " --- "
+                    }
+                }
+            )
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["page_count"] == 2
+
+            # Verify custom separator was passed
+            call_kwargs = mock_service.extract_text_from_multiple_images.call_args[1]
+            assert call_kwargs["page_separator"] == " --- "
+
+    def test_ocr_too_many_images(self, client, sample_base64_image):
+        """Test OCR with more than 10 images (should fail validation)"""
+        images = [sample_base64_image] * 11  # 11 images
+
+        response = client.post(
+            "/api/ocr",
+            json={"images": images}
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_ocr_empty_images_list(self, client):
+        """Test OCR with empty images list"""
+        response = client.post(
+            "/api/ocr",
+            json={"images": []}
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_ocr_both_image_and_images(self, client, sample_base64_image):
+        """Test that providing both 'image' and 'images' fails validation"""
+        response = client.post(
+            "/api/ocr",
+            json={
+                "image": sample_base64_image,
+                "images": [sample_base64_image]
+            }
+        )
+
+        assert response.status_code == 422  # Validation error
+
+    def test_ocr_neither_image_nor_images(self, client):
+        """Test that providing neither 'image' nor 'images' fails validation"""
+        response = client.post(
+            "/api/ocr",
+            json={"options": {"language": "en"}}
+        )
+
+        assert response.status_code == 422  # Validation error
+

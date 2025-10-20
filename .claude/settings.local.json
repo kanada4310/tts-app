@@ -11,7 +11,11 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nセッション#5: 統合テスト完了と音程保持機能実装\n\n- Gemini OCR統合テスト成功（gemini-2.5-flash）\n- OpenAI TTS統合テスト成功（課金設定後）\n- AudioPlayerをTone.jsからHTML5 Audio APIへ移行\n- 音程保持機能実装（preservesPitch）\n- CORS設定修正（ポート5174追加）\n- エンドツーエンド統合テスト完了\n- デバッグ機能強化（TTSトレースバック追加）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(if exist nul del nul)",
       "Bash(git add -A)",
-      "Bash(git add .claude/settings.local.json backend/ docs/ frontend/src/)"
+      "Bash(git add .claude/settings.local.json backend/ docs/ frontend/src/)",
+      "Bash(git add .gitignore)",
+      "Bash(git add frontend/package-lock.json)",
+      "Bash(git push origin master)",
+      "Bash(timeout /t 5)"
     ],
     "deny": [],
     "ask": []

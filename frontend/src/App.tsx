@@ -9,14 +9,14 @@ import './App.css'
 
 function App() {
   const [ocrText, setOcrText] = useState('')
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleOCRComplete = (result: OCRResponse, imageDataUrl: string) => {
+  const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
     setOcrText(result.text)
-    setImagePreview(imageDataUrl)
+    setImagePreviews(imageDataUrls)
     setError(null)
   }
 
@@ -95,24 +95,24 @@ function App() {
           </section>
         )}
 
-        {!ocrText && !imagePreview && (
+        {!ocrText && imagePreviews.length === 0 && (
           <div className="welcome-message">
             <h2>Welcome!</h2>
-            <p>Upload an image to extract text and convert it to speech</p>
+            <p>Upload image(s) to extract text and convert it to speech</p>
             <div className="features">
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
-                <h3>Upload Image</h3>
-                <p>JPEG or PNG, up to 10MB</p>
+                <h3>Upload Image(s)</h3>
+                <p>JPEG or PNG, up to 10MB each, max 10 images</p>
               </div>
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
                 <h3>Extract Text</h3>
-                <p>Powered by Claude AI</p>
+                <p>Powered by Gemini AI</p>
               </div>
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -129,7 +129,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>Powered by Claude AI and OpenAI TTS</p>
+        <p>Powered by Gemini AI and OpenAI TTS</p>
       </footer>
     </div>
   )

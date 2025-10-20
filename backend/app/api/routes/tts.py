@@ -22,6 +22,7 @@ limiter = Limiter(key_func=get_remote_address)
             "description": "Audio file in Opus format"
         },
         400: {"model": TTSErrorResponse},
+        422: {"model": TTSErrorResponse},
         429: {"model": TTSErrorResponse},
         500: {"model": TTSErrorResponse},
     }
@@ -42,9 +43,11 @@ async def generate_speech_from_text(
         Audio file in the requested format
 
     Raises:
-        HTTPException: For various error conditions (400, 429, 500)
+        HTTPException: For various error conditions (400, 422, 429, 500)
     """
     try:
+        # Debug: Log request
+        print(f"TTS Request received - Text length: {len(tts_request.text)}, Voice: {tts_request.voice}, Format: {tts_request.format}")
         # Generate speech using OpenAI service
         audio_data = openai_service.generate_speech(
             text=tts_request.text,
