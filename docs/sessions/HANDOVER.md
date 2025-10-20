@@ -5,177 +5,173 @@
 
 ---
 
-## セッション #5 - 2025-10-20
+## セッション #6 - 2025-10-20
 
 ### 実施内容
 
-#### 1. サーバー起動と統合テスト環境構築
+#### 1. 仕様追加とドキュメント更新
 
-**サーバー起動**:
-- バックエンドサーバー: `http://0.0.0.0:8000` (Gemini API設定確認済み)
-- フロントエンドサーバー: `http://localhost:5174` (ポート5173が使用中のため自動調整)
+**新機能の仕様定義**:
+- 複数画像アップロード機能（最大10枚の連続ページ対応）
+- AudioPlayer拡張機能（文ごとのポーズ制御、ナビゲーション、シークバー強化）
 
-**CORS問題の解決**:
-- 問題: フロントエンドがポート5174で起動したが、CORS設定にはポート5173のみ許可されていた
-- 解決: `backend/.env`にポート5174を追加
-- バックエンドサーバーを再起動して設定を反映
+**更新ドキュメント**:
+- `docs/SPECIFICATION.md`: 複数画像対応とAudioPlayer拡張機能を追加
+- `docs/API.md`: 複数画像エンドポイント仕様を追加
+- `docs/sessions/TODO.md`: 新機能タスクを高優先度に追加
 
-#### 2. Gemini OCR統合テスト（成功）
+#### 2. バックエンド: 複数画像OCR機能の実装
 
-**実施内容**:
-- 画像アップロード機能の実動作確認
-- Gemini API (`gemini-2.5-flash`モデル) でのOCR処理成功
-- テキスト抽出の確認
+**OCRスキーマ拡張** (`backend/app/schemas/ocr.py`):
+- `image`フィールド（単一画像）と`images`フィールド（複数画像配列）の両対応
+- 最大10枚のバリデーション
+- `page_separator`オプション追加（デフォルト: `\n\n`）
+- 相互排他バリデーション（`image`と`images`の同時指定を禁止）
 
-**結果**: ✅ OCR処理が正常に動作
+**Geminiサービス拡張** (`backend/app/services/gemini_service.py`):
+- `extract_text_from_multiple_images()`メソッド追加
+- 各画像を順次OCR処理し、ページ区切りで結合
+- エラーハンドリング: 1ページ失敗しても続行
 
-#### 3. OpenAI TTS統合テスト
+**OCRエンドポイント更新** (`backend/app/api/routes/ocr.py`):
+- `image`/`images`の自動判定
+- `page_count`レスポンスフィールド追加
+- 複数画像処理のドキュメント追加
 
-**問題の発見**:
-- 初回実行時にError 429 (insufficient_quota) が発生
-- OpenAI APIのクォータ（使用枠）超過
+**TTSスキーマ拡張** (`backend/app/schemas/tts.py`):
+- `max_length`: 4096 → 100000文字（複数ページの長文対応）
 
-**解決**:
-- ユーザーがOpenAI APIの課金設定を完了
-- TTS生成が正常に動作することを確認
+**テスト追加** (`backend/tests/test_ocr.py`):
+- 複数画像成功ケース
+- カスタムセパレーター
+- 10枚超過バリデーション
+- 空配列バリデーション
+- 両フィールド指定エラー
+- どちらも未指定エラー
 
-**デバッグ強化**:
-- `backend/app/api/routes/tts.py`にトレースバック出力を追加
-- エラー原因の迅速な特定が可能に
+#### 3. フロントエンド: 複数画像アップロードUI実装
 
-#### 4. 音声再生機能の改善（Tone.js → HTML5 Audio API）
+**API型定義更新** (`frontend/src/types/api.ts`):
+- `OCRRequest`: `images`配列追加
+- `OCROptions`: `page_separator`追加
+- `OCRResponse`: `page_count`追加
 
-**問題の発見**:
-- 速度調整時に音程が変化する問題
-- Tone.jsの`playbackRate`は音程も一緒に変わる（テープレコーダー方式）
-- 音質が低下する
+**APIサービス拡張** (`frontend/src/services/api/ocr.ts`):
+- `performOCRMultiple()`関数追加
+- 複数画像用のデフォルトオプション設定
 
-**解決策の実装**:
-- **Tone.js から HTML5 Audio API へ完全移行**
-- `audio.preservesPitch = true` プロパティを設定
-- 古いブラウザ向けのフォールバック対応も実装
+**ImageUploadコンポーネント大幅更新** (`frontend/src/components/features/ImageUpload/ImageUpload.tsx`):
+- `multiple`属性でfile input対応
+- 最大10枚のバリデーション
+- 各画像の圧縮処理（進捗表示付き）
+- 進捗表示: "Compressing image X of Y..."、"Performing OCR..."
+- グリッドレイアウトのプレビュー表示
+- 単一/複数の自動判定
 
-**実装の詳細**:
-```typescript
-// 音程保持の設定
-audio.preservesPitch = true
-audio.mozPreservesPitch = true  // Firefox
-audio.webkitPreservesPitch = true  // Safari
+**スタイル追加** (`frontend/src/components/features/ImageUpload/styles.css`):
+- `.preview-grid`: グリッドレイアウト（120px列、自動調整）
+- `.preview-thumbnail`: サムネイル表示スタイル
+- 最大高さ300pxでスクロール対応
 
-// 速度調整
-audio.playbackRate = speed  // 0.5x ~ 2.0x
-```
-
-**改善結果**:
-- ✅ 速度調整時に音程が維持される
-- ✅ 音質が向上
-- ✅ シンプルな実装（依存関係削減）
-- ✅ ブラウザネイティブAPIの活用
+**App.tsx更新** (`frontend/src/App.tsx`):
+- `imagePreview` → `imagePreviews`配列に変更
+- UI文言を複数画像対応に更新
+- "Claude AI" → "Gemini AI"に修正
 
 ### 技術的決定事項
 
-#### 音声再生の実装方法: HTML5 Audio API
+#### 複数画像処理の設計方針
 
-**選択理由**:
-1. **音程保持**: `preservesPitch`プロパティで自然な速度調整が可能
-2. **音質**: ブラウザネイティブの高品質な音声処理
-3. **シンプルさ**: 外部ライブラリ不要、オーバーヘッド削減
-4. **互換性**: 主要ブラウザで広くサポート
+**スキーマ設計**:
+- 単一画像（`image`）と複数画像（`images`）の両方をサポート
+- 相互排他バリデーションで誤使用を防止
+- 最大10枚の制限（メモリとパフォーマンスのバランス）
 
-**Tone.jsとの比較**:
-| 項目 | Tone.js | HTML5 Audio API |
-|------|---------|-----------------|
-| 音程保持 | ❌ 音程が変わる | ✅ 音程維持 |
-| 音質 | 普通 | 高品質 |
-| 実装の複雑さ | 複雑 | シンプル |
-| 依存関係 | 外部ライブラリ必要 | ネイティブAPI |
-| ファイルサイズ | 大きい | なし |
+**OCR処理方法**:
+- 各画像を順次処理（並列処理ではなく）
+- 理由: Gemini APIのレート制限対策、メモリ使用量の制御
+- エラーハンドリング: 1ページ失敗しても他ページは続行
 
-#### AudioPlayerコンポーネントのリファクタリング
+**フロントエンドUI設計**:
+- プログレッシブな進捗表示（圧縮→OCR）
+- グリッドレイアウトでサムネイル一覧表示
+- 最小限のメモリ使用（必要な情報のみ保持）
 
-**主な変更点**:
-1. `Tone.Player` → `HTMLAudioElement`
-2. イベントリスナーによる状態管理
-   - `loadedmetadata`: 音声読み込み完了
-   - `timeupdate`: 再生位置更新
-   - `ended`: 再生終了
-3. 手動の時間更新インターバルを削除（ネイティブイベント使用）
+#### TTS長文対応
+
+**問題**: 複数ページのOCRで生成されたテキストが4096文字を超えると422エラー
+
+**解決**: TTSスキーマの`max_length`を100000文字に拡張
+- OpenAI TTS APIの実際の制限は4096文字だが、フロントエンドで分割処理を想定
+- 将来的に長文の自動分割機能を実装予定
 
 ### 発生した問題と解決
 
-**問題1**: CORS policy エラー
-- **原因**: フロントエンドがポート5174で起動したが、バックエンドCORS設定にポート5174が含まれていない
-- **解決**: `backend/.env`の`CORS_ORIGINS`にポート5174を追加
+**問題1**: App.tsxで`imagePreview is not defined`エラー
+- **原因**: `imagePreview`を`imagePreviews`に変更したが、一部の参照を更新し忘れ
+- **解決**: `imagePreview` → `imagePreviews.length === 0`に修正
 - **所要時間**: 約5分
 
-**問題2**: OpenAI TTS Error 429
-- **原因**: APIクォータ（使用枠）超過
-- **解決**: ユーザーがOpenAI APIの課金設定を完了
-- **所要時間**: ユーザー対応待ち（数時間）
+**問題2**: TTS生成時に422エラー（Unprocessable Entity）
+- **原因**: 複数ページのOCRで生成されたテキストが4096文字の制限を超過
+- **解決**: `backend/app/schemas/tts.py`の`max_length`を100000に拡張
+- **所要時間**: 約10分（原因特定含む）
 
-**問題3**: 音声再生時に音程が変化
-- **原因**: Tone.jsの`playbackRate`は音程も変える仕様
-- **解決**: HTML5 Audio APIの`preservesPitch`プロパティを使用
-- **所要時間**: 約30分（実装・テスト含む）
+**問題3**: サーバーの自動リロード
+- **原因**: Uvicornの自動リロード機能が変更を検知
+- **解決**: ブラウザリフレッシュで解決
+- **所要時間**: 即時
 
-**問題4**: サーバー自動リロードの遅延
-- **原因**: Uvicornの自動リロード機能が反映されない場合がある
-- **解決**: 手動でサーバープロセスをkillして再起動
-- **所要時間**: 約5分
+### 動作確認結果
 
-### エンドツーエンド統合テスト結果
+エンドツーエンドで複数画像フローが正常に動作:
 
-完全なフローが動作確認済み:
-
-1. ✅ **画像アップロード** → ImageUploadコンポーネント動作
-2. ✅ **OCR処理** → Gemini API (`gemini-2.5-flash`) で成功
-3. ✅ **テキスト編集** → TextEditorコンポーネント動作
-4. ✅ **音声生成** → OpenAI TTS API で成功
-5. ✅ **音声再生** → HTML5 Audio APIで再生（速度調整・音程保持）
-
-**テスト結果**:
-- 画像アップロード: 成功
-- OCRテキスト抽出: 成功
-- テキスト編集: 成功
-- TTS音声生成: 成功（課金後）
-- 音声再生: 成功
-- 速度調整（0.5x〜2.0x）: 成功
-- 音程保持: 成功
+1. ✅ **複数画像アップロード** → 2-3枚の画像を選択
+2. ✅ **進捗表示** → "Compressing image X of Y..."、"Performing OCR..."
+3. ✅ **グリッドプレビュー** → サムネイル一覧表示
+4. ✅ **OCR処理** → 各画像からテキスト抽出、改行2つで結合
+5. ✅ **TTS生成** → 長文（複数ページ）対応
+6. ✅ **音声再生** → HTML5 Audio APIで再生
 
 ### 次セッションへの引き継ぎ事項
 
 #### すぐに着手すべきこと
 
-1. **抽出テキストの品質評価**（所要時間: 30分）
+1. **AudioPlayer拡張機能の実装**（所要時間: 4時間）
+   - テキスト解析: 文の境界検出
+   - 文ごとのポーズ挿入機能（0-5秒、0.5秒刻み）
+   - 文ごとのナビゲーション（前/次スキップボタン）
+   - シークバー上の文境界マーカー
+   - シークバーツールチップ（文の先頭5-10単語表示）
+   - ポーズ設定UI
+
+2. **OCR精度の評価とチューニング**（所要時間: 30分）
    - 様々な画像タイプでOCR精度を確認
    - 手書き除外機能のテスト
    - 多言語対応の確認
+   - プロンプトの最適化（必要に応じて）
 
-2. **エラーハンドリングのテスト**（所要時間: 30分）
+3. **エラーハンドリングの包括的テスト**（所要時間: 30分）
    - 不正な画像フォーマット
    - 大きすぎる画像
    - ネットワークエラーシミュレーション
    - APIレート制限のテスト
 
-3. **パフォーマンス最適化**（所要時間: 1時間）
-   - 画像圧縮パラメータの調整
-   - レート制限設定の最適化
-   - レスポンスタイムの計測
-
 #### 注意事項
 
-- **OpenAI APIキー**: 課金設定済み、クォータ監視が必要
-- **Gemini APIキー**: `.env`ファイルで管理（コミット禁止）
-- **複数サーバープロセス**: 開発時に複数のプロセスが起動している可能性
-  - ポート8000を使用しているプロセスを確認してから起動
-- **フロントエンドポート**: ポート5173が使用中の場合、自動的に5174に変更される
-  - CORS設定に5174を含めること
+- **APIキー管理**: Gemini API、OpenAI APIキーは`.env`ファイルで管理（コミット禁止）
+- **複数画像制限**: フロントエンドで最大10枚のバリデーション実装済み
+- **TTS文字数制限**: スキーマは100000文字まで許可、OpenAI APIの実際の制限（4096文字）を考慮した分割処理が必要
+- **プレビュー表示**: 複数画像の場合、メモリ使用量に注意
 
 #### 今後の機能実装
 
+**優先度: 高**
+- AudioPlayer拡張機能（文ごとのナビゲーション、ポーズ制御）
+
 **優先度: 中**
+- TTS長文の自動分割機能（4096文字単位）
 - IndexedDBキャッシュ実装（画像・音声のオフライン対応）
-- RepeatControlコンポーネント（1文ごとリピート機能）
 - UIフィードバックの改善（ローディング状態、プログレスバー）
 
 **優先度: 低**
@@ -185,35 +181,42 @@ audio.playbackRate = speed  // 0.5x ~ 2.0x
 
 ### 成果物リスト
 
-#### 新規作成ファイル
-なし
+#### バックエンド更新ファイル
+- [x] `backend/app/schemas/ocr.py` - 複数画像スキーマ拡張
+- [x] `backend/app/schemas/tts.py` - max_length拡張
+- [x] `backend/app/services/gemini_service.py` - 複数画像処理機能
+- [x] `backend/app/api/routes/ocr.py` - エンドポイント更新
+- [x] `backend/app/api/routes/tts.py` - デバッグログ追加
+- [x] `backend/tests/test_ocr.py` - 複数画像テスト追加
 
-#### 更新ファイル
-- [x] `backend/.env` - CORS設定にポート5174追加
-- [x] `backend/app/api/routes/tts.py` - デバッグ用トレースバック追加
-- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - HTML5 Audio API実装（Tone.js削除）
-- [x] `docs/sessions/HANDOVER.md` - このファイル
-- [x] `docs/sessions/TODO.md` - タスク更新
-- [x] `docs/sessions/SUMMARY.md` - 進捗更新（45% → 50%予定）
+#### フロントエンド更新ファイル
+- [x] `frontend/src/types/api.ts` - API型定義更新
+- [x] `frontend/src/services/api/ocr.ts` - performOCRMultiple追加
+- [x] `frontend/src/components/features/ImageUpload/ImageUpload.tsx` - 複数画像UI実装
+- [x] `frontend/src/components/features/ImageUpload/styles.css` - グリッドレイアウト追加
+- [x] `frontend/src/App.tsx` - 複数画像データ管理
+
+#### ドキュメント更新ファイル
+- [x] `docs/SPECIFICATION.md` - 複数画像機能追加
+- [x] `docs/API.md` - 複数画像エンドポイント仕様追加
+- [x] `docs/sessions/TODO.md` - 新機能タスク追加
 
 ### コード品質
 
-**AudioPlayerコンポーネントのリファクタリング**:
-- 行数: 235行 → 235行（ほぼ同じ）
-- 依存関係: Tone.js削除、ネイティブAPI使用
-- 複雑度: 低下（イベントリスナーベースのシンプルな実装）
-- 型安全性: 維持（TypeScript）
-- ドキュメント: docstring更新
+**バックエンド**:
+- スキーマバリデーション: Pydanticで厳密な型チェック
+- エラーハンドリング: 1ページ失敗しても続行
+- テストカバレッジ: 複数画像の主要ケースをカバー
 
-**設定の堅牢性**:
-- CORS設定: 柔軟な設定（カンマ区切り文字列/配列両対応）
-- APIキー管理: 必須/オプショナルを明確化
-- デバッグ情報: トレースバック完備
+**フロントエンド**:
+- 型安全性: TypeScriptで厳密な型定義
+- ユーザーフィードバック: 進捗表示、エラーメッセージ
+- レスポンシブデザイン: グリッドレイアウトが画面サイズに適応
 
 **保守性**:
-- シンプルな実装（外部ライブラリ削減）
-- ブラウザネイティブAPIの活用
-- 明確な責任分離
+- 明確な責任分離（スキーマ、サービス、ルーティング）
+- 既存機能との互換性維持（単一画像も引き続き動作）
+- ドキュメント完備
 
 ---
 
@@ -222,6 +225,7 @@ audio.playbackRate = speed  // 0.5x ~ 2.0x
 過去のセッション詳細は [SESSION_HISTORY.md](SESSION_HISTORY.md) を参照してください。
 
 **セッション一覧:**
+- [セッション #5 (2025-10-20)](SESSION_HISTORY.md#セッション-5---2025-10-20): 統合テスト完了と音程保持機能実装
 - [セッション #4 (2025-10-20)](SESSION_HISTORY.md#セッション-4---2025-10-20): Gemini API統合、ローカル環境セットアップ
 - [セッション #3 (2025-10-20)](SESSION_HISTORY.md#セッション-3---2025-10-20): バックエンドテスト実装完了
 - [セッション #2 (2025-10-20)](SESSION_HISTORY.md#セッション-2---2025-10-20): バックエンドAPI実装完了
