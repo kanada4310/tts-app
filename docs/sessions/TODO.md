@@ -4,21 +4,27 @@
 
 ## 🔴 最優先（次のセッション開始時）
 
-- [ ] バックエンドの基本セットアップ
-  - [ ] ディレクトリ構造作成
-  - [ ] requirements.txt作成
-  - [ ] FastAPIの基本設定（main.py, config.py）
-  - [ ] 環境変数設定（.env.example）
-  - 所要時間: 30分
+- [ ] バックエンドのテスト実装
+  - [ ] OCRエンドポイントのテスト
+  - [ ] TTSエンドポイントのテスト
+  - [ ] エラーハンドリングのテスト
+  - 所要時間: 1時間
 
 ## 🟡 高優先度
 
-- [ ] バックエンドAPI実装
-  - [ ] OCRエンドポイント（/api/ocr）
-  - [ ] TTSエンドポイント（/api/tts）
-  - [ ] エラーハンドリング
-  - [ ] レート制限実装
-  - 所要時間: 2時間
+- [x] バックエンドの基本セットアップ ✅
+  - [x] ディレクトリ構造作成
+  - [x] requirements.txt作成
+  - [x] FastAPIの基本設定（main.py, config.py）
+  - [x] 環境変数設定（.env.example）
+
+- [x] バックエンドAPI実装 ✅
+  - [x] OCRエンドポイント（/api/ocr）
+  - [x] TTSエンドポイント（/api/tts）
+  - [x] Pydanticスキーマ（schemas/）
+  - [x] Claude/OpenAIサービス（services/）
+  - [x] エラーハンドリング
+  - [x] レート制限実装
 
 - [ ] フロントエンドの基本セットアップ
   - [ ] Vite + React + TypeScript プロジェクト初期化

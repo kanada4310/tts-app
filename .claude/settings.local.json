@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial project setup\n\n- Created project structure for TTS (OCR + Text-to-Speech) app\n- Backend: FastAPI setup with core configuration and API routes\n- Frontend: React + TypeScript + Vite with PWA support\n- Documentation: API specs, architecture, and specifications\n- Session management: TODO, SUMMARY, and HANDOVER tracking\n- Claude Code /start command for session continuity\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(gh:*)",
+      "Bash(winget install:*)",
+      "Bash(mv SPECIFICATION.md docs/)",
+      "Bash(mv API.md docs/)",
+      "Bash(mv ARCHITECTURE.md docs/)"
     ],
     "deny": [],
     "ask": []
