@@ -1,0 +1,16 @@
+# Development Requirements
+-r requirements.txt
+
+# Testing
+pytest-asyncio==0.24.0
+pytest-cov==5.0.0
+pytest-mock==3.14.0
+
+# Code Quality
+black==24.8.0
+flake8==7.1.1
+isort==5.13.2
+mypy==1.11.2
+
+# Development Tools
+ipython==8.27.0
