@@ -4,7 +4,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.schemas import OCRRequest, OCRResponse, OCRErrorResponse
-from app.services import claude_service
+from app.services.gemini_service import gemini_service
 from app.core.errors import OCRError
 from app.core.constants import ERROR_INTERNAL
 
@@ -40,8 +40,8 @@ async def extract_text_from_image(
         HTTPException: For various error conditions (400, 429, 500)
     """
     try:
-        # Extract text using Claude service
-        text, confidence, processing_time = claude_service.extract_text(
+        # Extract text using Gemini service
+        text, confidence, processing_time = gemini_service.extract_text(
             image_data=ocr_request.image,
             exclude_annotations=ocr_request.options.exclude_annotations,
             language=ocr_request.options.language
@@ -54,6 +54,9 @@ async def extract_text_from_image(
         )
 
     except OCRError as e:
+        import traceback
+        print(f"OCR Error: {e.message}")
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={
@@ -62,6 +65,9 @@ async def extract_text_from_image(
             }
         )
     except Exception as e:
+        import traceback
+        print(f"Unexpected Error: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={

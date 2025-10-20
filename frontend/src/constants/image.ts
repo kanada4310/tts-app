@@ -3,9 +3,9 @@
  */
 
 export const IMAGE_CONFIG = {
-  MAX_SIZE_MB: 10,
-  MAX_DIMENSION: 2000,
-  QUALITY: 0.85,
-  SUPPORTED_TYPES: ['image/jpeg', 'image/png'] as const,
-  OUTPUT_FORMAT: 'image/jpeg' as const,
+  MAX_SIZE: 10 * 1024 * 1024, // 10MB in bytes
+  MAX_DIMENSION: 2000, // px
+  COMPRESSION_QUALITY: 0.85, // 85%
+  ALLOWED_TYPES: ['image/jpeg', 'image/png'],
+  DEFAULT_FORMAT: 'image/jpeg' as const,
 } as const

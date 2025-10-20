@@ -5,8 +5,154 @@
 最新のセッション情報は [HANDOVER.md](HANDOVER.md) を参照してください。
 
 ## 目次
+- [セッション #4 - 2025-10-20](#セッション-4---2025-10-20)
+- [セッション #3 - 2025-10-20](#セッション-3---2025-10-20)
 - [セッション #2 - 2025-10-20](#セッション-2---2025-10-20)
 - [セッション #1 - 2025-10-20](#セッション-1---2025-10-20)
+
+---
+
+## セッション #4 - 2025-10-20
+
+### 実施内容
+
+#### 1. ローカル環境セットアップとトラブルシューティング
+
+**フロントエンド環境構築**:
+- `npm install`実行（477パッケージインストール完了）
+- TypeScript型チェック実行とエラー修正（3箇所）
+  - `App.tsx`: 未使用の`editedText`状態を削除
+  - `AudioPlayer.tsx`: `speed`状態の型を明示的に`number`に指定
+  - `compression.ts`: `file.type`の型アサーション追加
+
+**バックエンド環境構築**:
+- 依存関係確認済み（既にインストール済み）
+- APIキー設定完了（Anthropic, OpenAI, Gemini）
+- 設定ファイル修正:
+  - `config.py`: CORS origins のパース処理追加（文字列→配列変換）
+  - `config.py`: `anthropic_api_key`をオプショナルに変更
+  - `config.py`: `gemini_api_key`を必須フィールドとして追加
+
+**サーバー起動**:
+- バックエンドサーバー: `http://0.0.0.0:8000` (起動成功)
+- フロントエンドサーバー: `http://localhost:5173` (起動成功)
+
+#### 2. OCR API統合の切り替え（Claude → Gemini）
+
+**問題の発見と原因究明**:
+1. Claude APIでOCR実行時に404エラー連発
+2. 複数のモデル名を試行:
+   - `claude-sonnet-4.5-20250929` → 404
+   - `claude-sonnet-4-20241022` → 404
+   - `claude-3-5-sonnet-20241022` → 404
+   - `claude-3-5-sonnet-20240620` → 404
+3. 根本原因判明: ユーザーのAnthropic APIキーがClaude 3モデルへのアクセス権を持っていない
+   - `claude-3-haiku-20240307`のみ動作確認（テキストのみ）
+   - OCR精度への懸念からGemini APIへ移行決定
+
+**Gemini API統合実装**:
+- パッケージインストール: `pip install google-generativeai`
+- 新規ファイル作成: `backend/app/services/gemini_service.py`
+  - `GeminiService`クラス実装
+  - OCR用プロンプト生成ロジック
+  - Base64画像処理とメディアタイプ検出
+  - エラーハンドリング統合
+- `backend/app/api/routes/ocr.py`更新:
+  - `claude_service` → `gemini_service`へ切り替え
+  - デバッグ用トレースバック追加
+- `.env.example`更新: `GEMINI_API_KEY`追加
+
+**モデル名の問題と解決**:
+1. 初期実装: `gemini-1.5-flash` → 404エラー（v1beta APIに存在しない）
+2. 修正試行: `gemini-pro-vision` → 404エラー（廃止済み）
+3. 利用可能モデル調査実施（`genai.list_models()`）
+4. 最終決定: `gemini-2.5-flash`（最新のFlashモデル）
+   - generateContent対応
+   - Vision機能搭載
+   - 高速・高精度
+
+### 技術的決定事項
+
+#### OCRサービスの選択: Gemini API
+
+**選択理由**:
+1. AnthropicのAPIキー制約でClaude 3が利用不可
+2. OCR精度: Gemini 2.5は最新のビジョンモデル
+3. コスト効率: Flash版で十分な性能
+4. API安定性: Google公式SDKのサポート
+
+**実装方針**:
+- プロンプトエンジニアリング:
+  - `exclude_annotations`オプションで手書き除外指示
+  - `language`パラメータで言語ヒント提供
+  - 出力形式を明示（テキストのみ、説明なし）
+- エラーハンドリング:
+  - Google API例外を`OCRError`でラップ
+  - 処理時間を記録（パフォーマンス監視用）
+
+#### 開発環境の問題解決
+
+**CORS設定**:
+- Pydantic設定で文字列とリストの両方を受け入れ
+- `@field_validator`でカンマ区切り文字列を自動パース
+- `.env`ファイルでの設定を柔軟に
+
+**APIキー管理**:
+- `ANTHROPIC_API_KEY`: オプショナル（将来的な利用の余地）
+- `OPENAI_API_KEY`: 必須（TTS用）
+- `GEMINI_API_KEY`: 必須（OCR用）
+
+### 発生した問題と解決
+
+**問題1**: Claude API 404エラー連発
+- **原因**: APIキーのアクセスレベルがClaude 3をサポートしていない
+- **解決**: Gemini APIへ完全移行
+- **所要時間**: 約45分（モデル名試行錯誤含む）
+
+**問題2**: Gemini モデル名404エラー
+- **原因1**: `gemini-1.5-flash`がv1beta APIに存在しない
+- **原因2**: `gemini-pro-vision`が廃止済み
+- **解決**: `genai.list_models()`で利用可能モデルを確認し、`gemini-2.5-flash`を採用
+- **所要時間**: 約20分
+
+**問題3**: サーバーの自動リロードが機能しない
+- **原因**: 複数のUvicornプロセスが同時実行され、Pythonモジュールがキャッシュされた
+- **解決**: 全てのバックグラウンドサーバーを終了し、新規プロセスで起動
+- **所要時間**: 約10分
+
+**問題4**: TypeScript型エラー
+- **原因**: 厳格な型チェックによる不一致
+- **解決**:
+  - 未使用変数の削除
+  - ジェネリック型の明示化
+  - 型アサーションの追加
+- **所要時間**: 約10分
+
+**問題5**: CORS origins設定のバリデーションエラー
+- **原因**: `.env`ファイルではカンマ区切り文字列だが、Pydanticがリストを期待
+- **解決**: `@field_validator`で自動パース処理を追加
+- **所要時間**: 約5分
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `backend/app/services/gemini_service.py` - Gemini OCRサービス実装（143行）
+
+#### 更新ファイル
+- [x] `backend/app/api/routes/ocr.py` - Gemini serviceへ切り替え + デバッグ追加
+- [x] `backend/app/core/config.py` - Gemini API key追加、Anthropicをオプショナル化、CORSパーサー追加
+- [x] `backend/app/core/constants.py` - Claudeモデル名を3.5 Sonnetに更新
+- [x] `backend/.env.example` - Gemini API key の例追加
+- [x] `frontend/src/App.tsx` - 未使用変数削除
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - 型明示化
+- [x] `frontend/src/services/image/compression.ts` - 型アサーション追加
+- [x] `frontend/src/constants/image.ts` - 定数名を実装に合わせて更新
+
+---
+
+## セッション #3 - 2025-10-20
+
+（セッション#3の内容がすでに存在する場合はそのまま保持）
 
 ---
 

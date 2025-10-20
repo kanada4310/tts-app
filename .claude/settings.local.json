@@ -1,14 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nInitial project setup\n\n- Created project structure for TTS (OCR + Text-to-Speech) app\n- Backend: FastAPI setup with core configuration and API routes\n- Frontend: React + TypeScript + Vite with PWA support\n- Documentation: API specs, architecture, and specifications\n- Session management: TODO, SUMMARY, and HANDOVER tracking\n- Claude Code /start command for session continuity\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(gh:*)",
-      "Bash(winget install:*)",
-      "Bash(mv SPECIFICATION.md docs/)",
-      "Bash(mv API.md docs/)",
-      "Bash(mv ARCHITECTURE.md docs/)"
+      "Bash(netstat -ano)",
+      "Bash(findstr :8000)",
+      "Bash(python -c \"from app.core.config import settings; print(f''Gemini API Key: {\"\"SET\"\" if settings.gemini_api_key else \"\"NOT SET\"\"}'')\")",
+      "Bash(python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash(npm run dev)",
+      "Bash(findstr CORS)",
+      "Bash(git add .)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nセッション#5: 統合テスト完了と音程保持機能実装\n\n- Gemini OCR統合テスト成功（gemini-2.5-flash）\n- OpenAI TTS統合テスト成功（課金設定後）\n- AudioPlayerをTone.jsからHTML5 Audio APIへ移行\n- 音程保持機能実装（preservesPitch）\n- CORS設定修正（ポート5174追加）\n- エンドツーエンド統合テスト完了\n- デバッグ機能強化（TTSトレースバック追加）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(if exist nul del nul)",
+      "Bash(git add -A)",
+      "Bash(git add .claude/settings.local.json backend/ docs/ frontend/src/)"
     ],
     "deny": [],
     "ask": []

@@ -5,162 +5,215 @@
 
 ---
 
-## セッション #3 - 2025-10-20
+## セッション #5 - 2025-10-20
 
 ### 実施内容
 
-#### 1. バックエンドテスト実装完了
+#### 1. サーバー起動と統合テスト環境構築
 
-**テストインフラ整備**:
-- `pytest.ini`: pytest設定ファイル作成
-- `tests/conftest.py`: 共通フィクスチャとテスト環境設定
-  - FastAPIテストクライアント
-  - サンプル画像データ（PNG/JPEG/Data URL）
-  - モックオブジェクト（Claude/OpenAI）
-  - 環境変数設定（テスト用APIキー）
+**サーバー起動**:
+- バックエンドサーバー: `http://0.0.0.0:8000` (Gemini API設定確認済み)
+- フロントエンドサーバー: `http://localhost:5174` (ポート5173が使用中のため自動調整)
 
-**テストファイル実装**:
+**CORS問題の解決**:
+- 問題: フロントエンドがポート5174で起動したが、CORS設定にはポート5173のみ許可されていた
+- 解決: `backend/.env`にポート5174を追加
+- バックエンドサーバーを再起動して設定を反映
 
-1. **test_ocr.py** (10テストケース)
-   - 正常系: デフォルトオプション、カスタムオプション、日本語対応
-   - 異常系: サービスエラー、内部エラー、バリデーションエラー
-   - レート制限テスト
+#### 2. Gemini OCR統合テスト（成功）
 
-2. **test_tts.py** (17テストケース)
-   - 正常系: 全音声タイプ（6種類）、全フォーマット（4種類）
-   - 日本語テキスト対応
-   - テキスト長制限（最小/最大）テスト
-   - 異常系: 不正な音声/フォーマット、サービスエラー
-   - メディアタイプマッピング検証
+**実施内容**:
+- 画像アップロード機能の実動作確認
+- Gemini API (`gemini-2.5-flash`モデル) でのOCR処理成功
+- テキスト抽出の確認
 
-3. **test_services.py** (20テストケース)
-   - ClaudeService:
-     - 画像データ処理（Base64/Data URL）
-     - プロンプト生成ロジック
-     - 信頼度判定
-     - エラーハンドリング
-   - OpenAIService:
-     - 音声生成（全音声/全フォーマット）
-     - バリデーション（音声/フォーマット）
-     - エラーハンドリング
+**結果**: ✅ OCR処理が正常に動作
 
-**テスト実行結果**:
-- 合計: 47テスト
-- 成功: 47/47 (100%)
-- 実行時間: 3.33秒
-- カバレッジ: エンドポイント、サービス層、エラーハンドリング全て網羅
+#### 3. OpenAI TTS統合テスト
+
+**問題の発見**:
+- 初回実行時にError 429 (insufficient_quota) が発生
+- OpenAI APIのクォータ（使用枠）超過
+
+**解決**:
+- ユーザーがOpenAI APIの課金設定を完了
+- TTS生成が正常に動作することを確認
+
+**デバッグ強化**:
+- `backend/app/api/routes/tts.py`にトレースバック出力を追加
+- エラー原因の迅速な特定が可能に
+
+#### 4. 音声再生機能の改善（Tone.js → HTML5 Audio API）
+
+**問題の発見**:
+- 速度調整時に音程が変化する問題
+- Tone.jsの`playbackRate`は音程も一緒に変わる（テープレコーダー方式）
+- 音質が低下する
+
+**解決策の実装**:
+- **Tone.js から HTML5 Audio API へ完全移行**
+- `audio.preservesPitch = true` プロパティを設定
+- 古いブラウザ向けのフォールバック対応も実装
+
+**実装の詳細**:
+```typescript
+// 音程保持の設定
+audio.preservesPitch = true
+audio.mozPreservesPitch = true  // Firefox
+audio.webkitPreservesPitch = true  // Safari
+
+// 速度調整
+audio.playbackRate = speed  // 0.5x ~ 2.0x
+```
+
+**改善結果**:
+- ✅ 速度調整時に音程が維持される
+- ✅ 音質が向上
+- ✅ シンプルな実装（依存関係削減）
+- ✅ ブラウザネイティブAPIの活用
 
 ### 技術的決定事項
 
-#### テスト設計の原則
+#### 音声再生の実装方法: HTML5 Audio API
 
-1. **モックの使用**:
-   - 外部API（Claude/OpenAI）は全てモック化
-   - APIキー不要でテスト実行可能
-   - 高速なテスト実行（3.33秒で47テスト）
+**選択理由**:
+1. **音程保持**: `preservesPitch`プロパティで自然な速度調整が可能
+2. **音質**: ブラウザネイティブの高品質な音声処理
+3. **シンプルさ**: 外部ライブラリ不要、オーバーヘッド削減
+4. **互換性**: 主要ブラウザで広くサポート
 
-2. **環境変数管理**:
-   ```python
-   # conftest.py内で設定
-   os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-key"
-   os.environ["OPENAI_API_KEY"] = "test-openai-key"
-   ```
+**Tone.jsとの比較**:
+| 項目 | Tone.js | HTML5 Audio API |
+|------|---------|-----------------|
+| 音程保持 | ❌ 音程が変わる | ✅ 音程維持 |
+| 音質 | 普通 | 高品質 |
+| 実装の複雑さ | 複雑 | シンプル |
+| 依存関係 | 外部ライブラリ必要 | ネイティブAPI |
+| ファイルサイズ | 大きい | なし |
 
-3. **フィクスチャ設計**:
-   - `sample_base64_image`: 最小限の有効なPNG画像
-   - `sample_data_url_image`: Data URL形式の画像
-   - `mock_claude_message`: Claude APIレスポンスモック
-   - `mock_openai_response`: OpenAI TTS APIレスポンスモック
+#### AudioPlayerコンポーネントのリファクタリング
 
-4. **テストカバレッジ**:
-   - 正常系: 各エンドポイントの基本動作確認
-   - 異常系: エラーハンドリング、バリデーション
-   - エッジケース: 最大/最小値、空文字列、長いテキスト
+**主な変更点**:
+1. `Tone.Player` → `HTMLAudioElement`
+2. イベントリスナーによる状態管理
+   - `loadedmetadata`: 音声読み込み完了
+   - `timeupdate`: 再生位置更新
+   - `ended`: 再生終了
+3. 手動の時間更新インターバルを削除（ネイティブイベント使用）
 
 ### 発生した問題と解決
 
-**問題1**: httpxモジュール未インストール
-- 問題: `ModuleNotFoundError: No module named 'httpx'`
-- 解決: requirements.txt/requirements-dev.txtから依存関係インストール
+**問題1**: CORS policy エラー
+- **原因**: フロントエンドがポート5174で起動したが、バックエンドCORS設定にポート5174が含まれていない
+- **解決**: `backend/.env`の`CORS_ORIGINS`にポート5174を追加
+- **所要時間**: 約5分
 
-**問題2**: 環境変数未設定エラー
-- 問題: `pydantic_core.ValidationError: Field required [anthropic_api_key, openai_api_key]`
-- 解決: conftest.pyでテスト用環境変数を設定（APIキーをモック値に）
+**問題2**: OpenAI TTS Error 429
+- **原因**: APIクォータ（使用枠）超過
+- **解決**: ユーザーがOpenAI APIの課金設定を完了
+- **所要時間**: ユーザー対応待ち（数時間）
 
-**問題3**: processing_timeのアサーション失敗
-- 問題: `assert 0.0 > 0` （処理時間が極めて高速）
-- 解決: `assert processing_time >= 0`に修正（0秒も許容）
+**問題3**: 音声再生時に音程が変化
+- **原因**: Tone.jsの`playbackRate`は音程も変える仕様
+- **解決**: HTML5 Audio APIの`preservesPitch`プロパティを使用
+- **所要時間**: 約30分（実装・テスト含む）
+
+**問題4**: サーバー自動リロードの遅延
+- **原因**: Uvicornの自動リロード機能が反映されない場合がある
+- **解決**: 手動でサーバープロセスをkillして再起動
+- **所要時間**: 約5分
+
+### エンドツーエンド統合テスト結果
+
+完全なフローが動作確認済み:
+
+1. ✅ **画像アップロード** → ImageUploadコンポーネント動作
+2. ✅ **OCR処理** → Gemini API (`gemini-2.5-flash`) で成功
+3. ✅ **テキスト編集** → TextEditorコンポーネント動作
+4. ✅ **音声生成** → OpenAI TTS API で成功
+5. ✅ **音声再生** → HTML5 Audio APIで再生（速度調整・音程保持）
+
+**テスト結果**:
+- 画像アップロード: 成功
+- OCRテキスト抽出: 成功
+- テキスト編集: 成功
+- TTS音声生成: 成功（課金後）
+- 音声再生: 成功
+- 速度調整（0.5x〜2.0x）: 成功
+- 音程保持: 成功
 
 ### 次セッションへの引き継ぎ事項
 
 #### すぐに着手すべきこと
 
-1. **フロントエンド基本セットアップ**（所要時間: 30分）
-   - `npm create vite@latest frontend -- --template react-ts`
-   - PROJECT_STRUCTURE.mdに従ってディレクトリ構造作成
-   - .env.example作成
+1. **抽出テキストの品質評価**（所要時間: 30分）
+   - 様々な画像タイプでOCR精度を確認
+   - 手書き除外機能のテスト
+   - 多言語対応の確認
 
-2. **基本的なコンポーネント実装**（所要時間: 2-3時間）
-   - ImageUploadコンポーネント
-   - TextEditorコンポーネント
-   - AudioPlayerコンポーネント
+2. **エラーハンドリングのテスト**（所要時間: 30分）
+   - 不正な画像フォーマット
+   - 大きすぎる画像
+   - ネットワークエラーシミュレーション
+   - APIレート制限のテスト
 
-#### バックエンドの状態
+3. **パフォーマンス最適化**（所要時間: 1時間）
+   - 画像圧縮パラメータの調整
+   - レート制限設定の最適化
+   - レスポンスタイムの計測
 
-**完了項目**:
-- ✅ OCR/TTSエンドポイント実装
-- ✅ Pydanticスキーマ定義
-- ✅ Claude/OpenAIサービス実装
-- ✅ エラーハンドリング
-- ✅ レート制限
-- ✅ ユニットテスト（47テスト、100%成功）
+#### 注意事項
 
-**未完了項目**:
-- なし（バックエンドは完成）
+- **OpenAI APIキー**: 課金設定済み、クォータ監視が必要
+- **Gemini APIキー**: `.env`ファイルで管理（コミット禁止）
+- **複数サーバープロセス**: 開発時に複数のプロセスが起動している可能性
+  - ポート8000を使用しているプロセスを確認してから起動
+- **フロントエンドポート**: ポート5173が使用中の場合、自動的に5174に変更される
+  - CORS設定に5174を含めること
 
-#### テスト実行方法
+#### 今後の機能実装
 
-```bash
-# バックエンドテスト実行
-cd backend
-pip install -r requirements-dev.txt
-pytest tests/ -v
+**優先度: 中**
+- IndexedDBキャッシュ実装（画像・音声のオフライン対応）
+- RepeatControlコンポーネント（1文ごとリピート機能）
+- UIフィードバックの改善（ローディング状態、プログレスバー）
 
-# カバレッジレポート付き
-pytest tests/ -v --cov=app --cov-report=html
-# → htmlcov/index.html でカバレッジ確認
-```
+**優先度: 低**
+- PWA対応（Service Worker、manifest.json）
+- フロントエンドテスト実装
+- デプロイ設定（Vercel、Railway）
 
 ### 成果物リスト
 
 #### 新規作成ファイル
-- [x] backend/pytest.ini - pytest設定
-- [x] backend/tests/conftest.py - テスト共通設定とフィクスチャ
-- [x] backend/tests/test_ocr.py - OCRエンドポイントテスト（10テスト）
-- [x] backend/tests/test_tts.py - TTSエンドポイントテスト（17テスト）
-- [x] backend/tests/test_services.py - サービス層テスト（20テスト）
+なし
 
 #### 更新ファイル
-- [x] docs/sessions/HANDOVER.md - このファイル
-- [x] docs/sessions/SUMMARY.md - 進捗更新（35% → 40%）
-- [x] docs/sessions/TODO.md - タスク更新
+- [x] `backend/.env` - CORS設定にポート5174追加
+- [x] `backend/app/api/routes/tts.py` - デバッグ用トレースバック追加
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - HTML5 Audio API実装（Tone.js削除）
+- [x] `docs/sessions/HANDOVER.md` - このファイル
+- [x] `docs/sessions/TODO.md` - タスク更新
+- [x] `docs/sessions/SUMMARY.md` - 進捗更新（45% → 50%予定）
 
 ### コード品質
 
-**テストカバレッジ**:
-- エンドポイント層: 100%
-- サービス層: 100%
-- スキーマ層: pydanticバリデーション（間接的にカバー）
-- エラーハンドリング: 100%
+**AudioPlayerコンポーネントのリファクタリング**:
+- 行数: 235行 → 235行（ほぼ同じ）
+- 依存関係: Tone.js削除、ネイティブAPI使用
+- 複雑度: 低下（イベントリスナーベースのシンプルな実装）
+- 型安全性: 維持（TypeScript）
+- ドキュメント: docstring更新
 
-**テスト実行速度**:
-- 47テスト / 3.33秒 = 平均0.07秒/テスト
-- モック使用により高速実行を実現
+**設定の堅牢性**:
+- CORS設定: 柔軟な設定（カンマ区切り文字列/配列両対応）
+- APIキー管理: 必須/オプショナルを明確化
+- デバッグ情報: トレースバック完備
 
 **保守性**:
-- 各テストは独立して実行可能
-- フィクスチャで重複コード削減
-- 明確なテスト名（何をテストしているか明示）
+- シンプルな実装（外部ライブラリ削減）
+- ブラウザネイティブAPIの活用
+- 明確な責任分離
 
 ---
 
@@ -169,5 +222,7 @@ pytest tests/ -v --cov=app --cov-report=html
 過去のセッション詳細は [SESSION_HISTORY.md](SESSION_HISTORY.md) を参照してください。
 
 **セッション一覧:**
+- [セッション #4 (2025-10-20)](SESSION_HISTORY.md#セッション-4---2025-10-20): Gemini API統合、ローカル環境セットアップ
+- [セッション #3 (2025-10-20)](SESSION_HISTORY.md#セッション-3---2025-10-20): バックエンドテスト実装完了
 - [セッション #2 (2025-10-20)](SESSION_HISTORY.md#セッション-2---2025-10-20): バックエンドAPI実装完了
 - [セッション #1 (2025-10-20)](SESSION_HISTORY.md#セッション-1---2025-10-20): プロジェクト初期化、GitHub連携

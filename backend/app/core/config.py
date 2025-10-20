@@ -1,5 +1,6 @@
 """Application configuration"""
-from typing import List
+from typing import List, Union
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,8 +8,9 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
 
     # API Keys
-    anthropic_api_key: str
+    anthropic_api_key: str = ""  # Optional
     openai_api_key: str
+    gemini_api_key: str  # Google Gemini API key
 
     # Server Configuration
     host: str = "0.0.0.0"
@@ -16,10 +18,19 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # CORS
-    cors_origins: List[str] = [
+    cors_origins: Union[List[str], str] = [
         "http://localhost:3000",
         "http://localhost:5173",
     ]
+
+    @field_validator('cors_origins', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS origins from string or list"""
+        if isinstance(v, str):
+            # Split by comma and strip whitespace
+            return [origin.strip() for origin in v.split(',') if origin.strip()]
+        return v
 
     # Rate Limiting
     rate_limit_per_hour: int = 100

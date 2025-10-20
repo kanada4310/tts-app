@@ -67,6 +67,9 @@ async def generate_speech_from_text(
         )
 
     except TTSGenerationError as e:
+        import traceback
+        print(f"TTS Generation Error: {e.message}")
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=400 if "Invalid" in e.message else 500,
             detail={
@@ -75,6 +78,9 @@ async def generate_speech_from_text(
             }
         )
     except Exception as e:
+        import traceback
+        print(f"Unexpected TTS Error: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={

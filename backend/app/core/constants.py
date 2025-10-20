@@ -1,7 +1,7 @@
 """Application constants"""
 
 # Claude API
-CLAUDE_MODEL = "claude-sonnet-4.5-20250929"
+CLAUDE_MODEL = "claude-3-5-sonnet-20240620"  # Claude 3.5 Sonnet
 CLAUDE_MAX_TOKENS = 4096
 
 # OpenAI TTS API
