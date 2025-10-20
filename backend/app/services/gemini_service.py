@@ -1,7 +1,8 @@
 """Gemini API service for OCR"""
 import base64
+import json
 import time
-from typing import Tuple, List
+from typing import Tuple, List, Dict, Any
 import google.generativeai as genai
 
 from app.core.config import settings
@@ -22,7 +23,7 @@ class GeminiService:
         image_data: str,
         exclude_annotations: bool = True,
         language: str = "en"
-    ) -> Tuple[str, str, float]:
+    ) -> Tuple[str, List[str], str, float]:
         """
         Extract text from image using Gemini's vision capabilities
 
@@ -32,7 +33,7 @@ class GeminiService:
             language: Expected language of the text
 
         Returns:
-            Tuple of (extracted_text, confidence_level, processing_time)
+            Tuple of (extracted_text, sentences, confidence_level, processing_time)
 
         Raises:
             OCRError: If OCR processing fails
@@ -58,8 +59,25 @@ class GeminiService:
                 prompt
             ])
 
-            # Extract text from response
-            extracted_text = response.text
+            # Parse JSON response
+            response_text = response.text.strip()
+
+            # Remove markdown code blocks if present
+            if response_text.startswith("```json"):
+                response_text = response_text[7:]  # Remove ```json
+            if response_text.startswith("```"):
+                response_text = response_text[3:]  # Remove ```
+            if response_text.endswith("```"):
+                response_text = response_text[:-3]  # Remove trailing ```
+
+            response_text = response_text.strip()
+
+            # Parse JSON
+            parsed_response = json.loads(response_text)
+
+            # Extract sentences and full text
+            sentences = parsed_response.get("sentences", [])
+            extracted_text = " ".join(sentences)
 
             # Gemini doesn't provide explicit confidence scores
             # We'll use "high" for successful responses
@@ -67,7 +85,13 @@ class GeminiService:
 
             processing_time = time.time() - start_time
 
-            return extracted_text, confidence, processing_time
+            return extracted_text, sentences, confidence, processing_time
+
+        except json.JSONDecodeError as e:
+            # Fallback: if JSON parsing fails, return response as plain text
+            processing_time = time.time() - start_time
+            extracted_text = response.text if 'response' in locals() else ""
+            return extracted_text, [extracted_text], "medium", processing_time
 
         except Exception as e:
             processing_time = time.time() - start_time
@@ -119,21 +143,37 @@ class GeminiService:
         Returns:
             Prompt string for Gemini
         """
-        base_prompt = "Please extract all the text from this image."
+        base_prompt = """Extract the text from this image and return it as a JSON object with the following structure:
+
+{
+  "sentences": ["sentence1", "sentence2", "sentence3", ...]
+}
+
+Requirements:
+1. EXCLUDE: page numbers, headers, footers, captions, figure labels, table of contents
+"""
 
         if exclude_annotations:
-            base_prompt += (
-                " Only extract the main printed text. "
-                "Exclude any handwritten notes, annotations, or marginalia."
-            )
+            base_prompt += "2. EXCLUDE: handwritten notes, annotations, marginalia\n"
+            base_prompt += "3. Extract ONLY the main body text (printed text)\n"
+        else:
+            base_prompt += "2. Extract all text including handwritten notes\n"
+
+        base_prompt += """4. Split text into sentences at proper boundaries:
+   - Split at: periods (.), exclamation marks (!), question marks (?)
+   - DO NOT split at: commas (,), semicolons (;), colons (:)
+   - DO NOT split at abbreviations: Mr., Dr., Mrs., Ms., Prof., Sr., Jr., vs., etc., e.g., i.e., U.S.A., etc.
+5. Each sentence should be a complete, standalone sentence
+6. Preserve the original sentence structure and punctuation
+7. Remove extra whitespace but keep sentence spacing
+"""
 
         if language != "en" and language != "auto":
-            base_prompt += f" The text is in {language}."
+            base_prompt += f"8. The text is in {language}\n"
 
-        base_prompt += (
-            " Return only the extracted text without any additional "
-            "commentary or explanation."
-        )
+        base_prompt += """
+Return ONLY valid JSON. Do not include any commentary, explanation, or markdown formatting.
+"""
 
         return base_prompt
 
@@ -143,7 +183,7 @@ class GeminiService:
         exclude_annotations: bool = True,
         language: str = "en",
         page_separator: str = "\n\n"
-    ) -> Tuple[str, str, float]:
+    ) -> Tuple[str, List[str], str, float]:
         """
         Extract text from multiple images using Gemini's vision capabilities
 
@@ -154,7 +194,7 @@ class GeminiService:
             page_separator: Separator to use between pages
 
         Returns:
-            Tuple of (extracted_text, confidence_level, processing_time)
+            Tuple of (extracted_text, sentences, confidence_level, processing_time)
 
         Raises:
             OCRError: If OCR processing fails
@@ -162,21 +202,25 @@ class GeminiService:
         start_time = time.time()
 
         try:
+            all_sentences = []
             extracted_texts = []
 
             # Process each image sequentially
             for i, image_data in enumerate(images_data):
                 try:
                     # Extract text from single image
-                    text, _, _ = self.extract_text(
+                    text, sentences, _, _ = self.extract_text(
                         image_data=image_data,
                         exclude_annotations=exclude_annotations,
                         language=language
                     )
                     extracted_texts.append(text)
+                    all_sentences.extend(sentences)
                 except OCRError as e:
                     # If one page fails, include error message
-                    extracted_texts.append(f"[Error processing page {i + 1}: {str(e)}]")
+                    error_msg = f"[Error processing page {i + 1}: {str(e)}]"
+                    extracted_texts.append(error_msg)
+                    all_sentences.append(error_msg)
 
             # Combine all texts with separator
             combined_text = page_separator.join(extracted_texts)
@@ -188,7 +232,7 @@ class GeminiService:
 
             processing_time = time.time() - start_time
 
-            return combined_text, confidence, processing_time
+            return combined_text, all_sentences, confidence, processing_time
 
         except Exception as e:
             processing_time = time.time() - start_time

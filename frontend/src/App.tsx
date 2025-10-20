@@ -2,20 +2,23 @@ import { useState } from 'react'
 import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
-import { performTTS, createAudioURL } from '@/services/api/tts'
+import { performTTS, performTTSWithTimings, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
-import type { OCRResponse } from '@/types/api'
+import type { OCRResponse, SentenceTiming } from '@/types/api'
 import './App.css'
 
 function App() {
   const [ocrText, setOcrText] = useState('')
+  const [ocrSentences, setOcrSentences] = useState<string[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [sentenceTimings, setSentenceTimings] = useState<SentenceTiming[]>([])
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
     setOcrText(result.text)
+    setOcrSentences(result.sentences || [])
     setImagePreviews(imageDataUrls)
     setError(null)
   }
@@ -35,11 +38,24 @@ function App() {
         URL.revokeObjectURL(audioUrl)
       }
 
-      // Generate speech
-      const audioBlob = await performTTS(text, TTS_VOICE, TTS_FORMAT)
-      const newAudioUrl = createAudioURL(audioBlob)
-
-      setAudioUrl(newAudioUrl)
+      // If we have sentences from OCR, use TTS with timings for precise pause placement
+      if (ocrSentences && ocrSentences.length > 0) {
+        const { audioBlob, timings } = await performTTSWithTimings(
+          text,
+          ocrSentences,
+          TTS_VOICE,
+          TTS_FORMAT
+        )
+        const newAudioUrl = createAudioURL(audioBlob)
+        setAudioUrl(newAudioUrl)
+        setSentenceTimings(timings.sentence_timings)
+      } else {
+        // Fallback to standard TTS without timings
+        const audioBlob = await performTTS(text, TTS_VOICE, TTS_FORMAT)
+        const newAudioUrl = createAudioURL(audioBlob)
+        setAudioUrl(newAudioUrl)
+        setSentenceTimings([])
+      }
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
@@ -91,7 +107,12 @@ function App() {
 
         {audioUrl && (
           <section className="player-section">
-            <AudioPlayer audioUrl={audioUrl} />
+            <AudioPlayer
+              audioUrl={audioUrl}
+              sourceText={ocrText}
+              sourceSentences={ocrSentences}
+              sentenceTimings={sentenceTimings}
+            />
           </section>
         )}
 

@@ -47,7 +47,7 @@ async def extract_text_from_image(
         # Check if multiple images or single image
         if ocr_request.images is not None:
             # Multiple images
-            text, confidence, processing_time = gemini_service.extract_text_from_multiple_images(
+            text, sentences, confidence, processing_time = gemini_service.extract_text_from_multiple_images(
                 images_data=ocr_request.images,
                 exclude_annotations=ocr_request.options.exclude_annotations,
                 language=ocr_request.options.language,
@@ -56,7 +56,7 @@ async def extract_text_from_image(
             page_count = len(ocr_request.images)
         else:
             # Single image
-            text, confidence, processing_time = gemini_service.extract_text(
+            text, sentences, confidence, processing_time = gemini_service.extract_text(
                 image_data=ocr_request.image,
                 exclude_annotations=ocr_request.options.exclude_annotations,
                 language=ocr_request.options.language
@@ -65,6 +65,7 @@ async def extract_text_from_image(
 
         return OCRResponse(
             text=text,
+            sentences=sentences,
             confidence=confidence,
             processing_time=processing_time,
             page_count=page_count

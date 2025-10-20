@@ -58,6 +58,10 @@ class OCRResponse(BaseModel):
         ...,
         description="Extracted text from the image(s)"
     )
+    sentences: List[str] = Field(
+        default_factory=list,
+        description="List of sentences extracted from the text"
+    )
     confidence: str = Field(
         ...,
         description="Confidence level: high, medium, low"

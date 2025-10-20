@@ -1,6 +1,6 @@
 """Pydantic schemas"""
 from .ocr import OCRRequest, OCRResponse, OCROptions, OCRErrorResponse
-from .tts import TTSRequest, TTSErrorResponse
+from .tts import TTSRequest, TTSErrorResponse, TTSResponse, SentenceTiming
 
 __all__ = [
     "OCRRequest",
@@ -9,4 +9,6 @@ __all__ = [
     "OCRErrorResponse",
     "TTSRequest",
     "TTSErrorResponse",
+    "TTSResponse",
+    "SentenceTiming",
 ]

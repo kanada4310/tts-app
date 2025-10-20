@@ -1,4 +1,5 @@
 """TTS request and response schemas"""
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -17,6 +18,30 @@ class TTSRequest(BaseModel):
     format: str = Field(
         default="opus",
         description="Audio format (opus, mp3, aac, flac)"
+    )
+    sentences: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of sentences for precise timing (from OCR)"
+    )
+
+
+class SentenceTiming(BaseModel):
+    """Timing information for a single sentence"""
+    text: str = Field(..., description="Sentence text")
+    start_time: float = Field(..., description="Start time in seconds")
+    end_time: float = Field(..., description="End time in seconds")
+    duration: float = Field(..., description="Duration in seconds")
+
+
+class TTSResponse(BaseModel):
+    """Response schema for TTS with sentence timings"""
+    sentence_timings: List[SentenceTiming] = Field(
+        default_factory=list,
+        description="Timing information for each sentence"
+    )
+    total_duration: float = Field(
+        ...,
+        description="Total audio duration in seconds"
     )
 
 

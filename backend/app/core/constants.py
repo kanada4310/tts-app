@@ -8,7 +8,7 @@ CLAUDE_MAX_TOKENS = 4096
 OPENAI_TTS_MODEL = "tts-1-hd"
 OPENAI_TTS_VOICE = "nova"
 OPENAI_TTS_SPEED = 1.0
-OPENAI_TTS_FORMAT = "opus"
+OPENAI_TTS_FORMAT = "mp3"  # Changed from opus due to ffmpeg compatibility
 
 # Image Processing
 SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png"]
