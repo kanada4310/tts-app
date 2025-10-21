@@ -124,6 +124,15 @@ VITE_API_BASE_URL=http://localhost:8000
 次のセッション開始時は `/start` コマンドを実行してください。
 プロジェクトの状態を自動で把握し、TODO.mdの最優先タスクから作業を開始します。
 
+## デプロイ
+
+このアプリケーションはVercel（フロントエンド）とRailway（バックエンド）にデプロイできます。
+
+詳細な手順は以下のドキュメントを参照してください:
+- **[デプロイガイド](docs/DEPLOYMENT.md)** - 詳細な手順と設定
+- **[デプロイチェックリスト](docs/DEPLOYMENT_CHECKLIST.md)** - ステップバイステップのチェックリスト
+- **[ユーザーガイド](docs/USER_GUIDE.md)** - 生徒向けの使い方ガイド
+
 ## ドキュメント
 
 - [機能仕様書](docs/SPECIFICATION.md)
@@ -131,3 +140,5 @@ VITE_API_BASE_URL=http://localhost:8000
 - [アーキテクチャ](docs/ARCHITECTURE.md)
 - [プロジェクト構造](PROJECT_STRUCTURE.md)
 - [開発進捗](docs/sessions/SUMMARY.md)
+- [デプロイガイド](docs/DEPLOYMENT.md)
+- [ユーザーガイド](docs/USER_GUIDE.md)

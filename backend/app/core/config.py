@@ -23,6 +23,8 @@ class Settings(BaseSettings):
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
+        # Production URLs will be added after deployment
+        # Example: "https://your-app-name.vercel.app"
     ]
 
     @field_validator('cors_origins', mode='before')

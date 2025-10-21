@@ -24,7 +24,9 @@
       "Bash(findstr \":5173\")",
       "Bash(taskkill //F //PID 17924)",
       "Bash(python -m py_compile app/services/openai_service.py)",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nセッション#8: タイムスタンプ精度改善とポーズ機能デバッグ\n\n- ffmpeg自動検知機能実装（_setup_ffmpeg_environment）\n- opus→mp3フォーマット変更（Chocolatey ffmpeg互換性対応）\n- タイムスタンプ比例補正（連結後の実際の長さで補正）\n- 文間に200ms無音挿入（AudioSegment.silent）\n- ポーズロジック改善（シーク機能、重複実行防止）\n- APIタイムアウト延長（60秒→300秒）\n- CORS設定拡張（port 5174, 5175追加）\n- デバッグログ追加（バックエンド＋フロントエンド）\n\n既知の問題: ポーズ前に次の文の音が一瞬被る（次回対応予定）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git add -A)"
     ],
     "deny": [],
     "ask": []
