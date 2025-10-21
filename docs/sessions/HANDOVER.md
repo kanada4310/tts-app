@@ -5,235 +5,144 @@
 
 ---
 
-## セッション #10 - 2025-10-21
+## セッション #11 - 2025-10-22
 
 ### 実施内容
 
-#### 1. Railway（バックエンド）へのデプロイ
+#### 1. Railway 502エラーの原因究明と解決
 
 **背景**:
-セッション#9でデプロイ設計とドキュメントを作成。セッション#10では実際のデプロイを実施し、複数のエラーに遭遇しながら解決した。
+セッション#10でRailway/Vercelデプロイを完了したが、CORSエラーが未解決のまま終了。セッション#11開始時点では、実際にはバックエンドAPIが502 Bad Gatewayエラーで完全にダウンしていた。
 
-**発生したエラーと解決策**:
+**発生した問題と解決プロセス**:
 
-##### エラー1: ffmpegが見つからない
-- **ログ**: `[WARNING] ffmpeg not found in common locations`
-- **原因**: openai_service.pyがWindows専用パス（`C:\ProgramData\chocolatey\...`）のみを参照
-- **解決**:
-  1. `backend/aptfile`を作成してffmpegをインストール（Railway用）
-  2. `openai_service.py`のffmpeg検知ロジックをクロスプラットフォーム対応に修正
-     - まず`shutil.which("ffmpeg")`でPATH内を検索（Linux対応）
-     - 見つからない場合のみWindows専用パスを確認
-     - `platform.system()`で環境を自動判定
+##### 問題1: 最新コードがGitHubにプッシュされていなかった
+- **現象**: Railwayで502 Bad Gatewayエラーが発生
+- **原因**: セッション#10の最新コミット（`98373c0`）がGitHubにプッシュされていなかった
+- **影響**: Railwayが古いコードでデプロイされており、ffmpeg対応やCORS設定が反映されていなかった
+- **解決**: `git push origin master`でプッシュ → Railwayが自動再デプロイ
+- **所要時間**: 5分
 
-##### エラー2: nixpacks.tomlでpipコマンドが見つからない
-- **エラー**: `pip: command not found`
-- **原因**: nixpacks.tomlの設定が不完全
-- **解決**: nixpacks.tomlを削除し、aptfileのみ使用（Railwayのデフォルト設定を活用）
+##### 問題2: Railwayのポート設定が未構成
+- **現象**: デプロイログでは正常起動（`Uvicorn running on http://0.0.0.0:8080`）だが、502エラーが継続
+- **原因**: RailwayのNetworking設定でポート番号が設定されておらず、エッジサーバーがバックエンドに接続できなかった
+- **診断**:
+  - `curl`でヘルスチェックエンドポイント（`/`）にアクセス → 502エラー
+  - Railwayログ確認 → アプリは起動しているがエッジサーバーが接続できていない
+- **解決**: RailwayダッシュボードのSettings → Networking → Portを`8080`に設定
+- **所要時間**: 10分
 
-##### エラー3: ModuleNotFoundError: No module named 'google'
-- **原因**: requirements.txtに`google-generativeai`（Gemini APIクライアント）が欠けていた
-- **解決**: requirements.txtに`google-generativeai==0.8.3`を追加
+##### 問題3: ローカル環境の.envファイル名の確認
+- **発見**: `backend/.env - コピー`というファイル名が存在すると誤解していた
+- **確認**: 実際には`.env`ファイルは正しく存在し、APIキーも設定されていた
+- **修正**: GEMINI_API_KEYの先頭にスペースがあったので削除
+- **影響**: ローカル環境には影響なし（Railwayは独自の環境変数を使用）
+- **所要時間**: 5分
 
-**最終的な構成**:
-- `backend/aptfile`: ffmpegのインストール（Ubuntu/Debianパッケージ）
-- `backend/Procfile`: 起動コマンド（既存）
-- `backend/requirements.txt`: Python依存関係（google-generativeai追加）
+#### 2. デプロイ完全成功とE2Eテスト
 
-**Railway URL**: `https://tts-app-production.up.railway.app`
+**デプロイ完了**:
+- ✅ Railway URL: `https://tts-app-production.up.railway.app`
+- ✅ Vercel URL: `https://tts-app-ycaz.vercel.app`
+- ✅ ヘルスチェック: `{"status":"healthy","version":"0.1.0","service":"TTS API"}`
 
-#### 2. Vercel（フロントエンド）へのデプロイ
-
-**設定**:
-- Framework Preset: Vite
-- Root Directory: `frontend`
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- 環境変数: `VITE_API_BASE_URL=https://tts-app-production.up.railway.app`
-
-**発生したエラーと解決策**:
-
-##### エラー1: vercel.jsonの非推奨設定
-- **問題**: 古いVercel v2形式（`builds`, `routes`）を使用
-- **解決**: vercel.jsonを簡略化（`rewrites`のみ保持、SPA用）
-
-##### エラー2: TypeScript build error
-- **エラー**:
-  - `Line 82: 'index' is declared but its value is never read`
-  - `Line 181: 'currentSentence' is declared but its value is never read`
-- **解決**: 未使用変数を削除
-  - `map((sentenceText, index) =>` → `map((sentenceText) =>`
-  - `const currentSentence` を削除
-
-**Vercel URL**: `https://tts-app-ycaz.vercel.app`
-
-#### 3. CORS設定の更新
-
-**手順**:
-1. `backend/app/core/config.py`のcors_originsにVercel URLを追加
-2. GitHubにpush → Railwayが自動再デプロイ
-3. Railway環境変数の`CORS_ORIGINS`を削除（コード内の設定を使用）
-
-**最終的なCORS設定**:
-```python
-cors_origins: Union[List[str], str] = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:5175",
-    "https://tts-app-ycaz.vercel.app",  # 本番環境
-]
+**CORS設定の検証**:
+```bash
+curl -X OPTIONS https://tts-app-production.up.railway.app/api/tts \
+  -H "Origin: https://tts-app-ycaz.vercel.app" \
+  -H "Access-Control-Request-Method: POST"
 ```
+- ✅ `Access-Control-Allow-Origin: https://tts-app-ycaz.vercel.app`
+- ✅ `Access-Control-Allow-Methods: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT`
+- ✅ `Access-Control-Allow-Credentials: true`
+
+**E2Eテスト結果**:
+- ✅ 画像アップロード → OCR → テキスト抽出: 成功
+- ✅ TTS音声生成: 成功
+- ✅ 音声再生、速度調整: 成功
+- ✅ ポーズ機能: 成功
+- ✅ ブラウザコンソールエラー: なし
+- ✅ CORSエラー: 解決完了
 
 ### 技術的決定事項
 
-#### aptfileの採用（nixpacks.toml削除）
-- **決定**: aptfileでffmpegをインストール、nixpacks.tomlは不使用
+#### Railwayのポート設定方法
+- **決定**: Settings → Networking → Portで明示的に`8080`を設定
 - **理由**:
-  - Railwayのデフォルト設定（Python自動検出）を活用
-  - nixpacks.tomlでpip設定が複雑化
-  - aptfileはシンプルで保守しやすい
-- **ファイル内容**: `ffmpeg`（1行のみ）
+  - Procfileで`--port $PORT`を指定しているが、Railwayのエッジサーバーが接続先ポートを認識できていなかった
+  - 環境変数`$PORT`は8080に設定されていたが、エッジサーバーとの通信に必要な設定が不足
+  - 明示的にポート番号を設定することで、エッジサーバーが正しくバックエンドに接続可能に
+- **代替案**: 環境変数で`PORT=8080`を設定（試さなかった）
 
-#### クロスプラットフォームffmpeg検知
-- **決定**: `shutil.which()`を最初に使用
-- **理由**:
-  - Linux/Docker/Railwayでは通常PATHに含まれる
-  - Windowsローカル環境でも後方互換性維持
-  - `platform.system()`で環境を判定
-- **フォールバック**: Windows環境のみChocolateyパスを確認
-
-#### vercel.jsonの簡略化
-- **決定**: SPA用の`rewrites`のみ保持
-- **理由**:
-  - `builds`と`routes`はVercel v2の非推奨機能
-  - ビルド設定はVercelダッシュボードで手動指定
-  - シンプルな設定でメンテナンス性向上
-
-#### 環境変数 vs コード設定
-- **決定**: CORS設定はコード内に記載、環境変数は使用しない
-- **理由**:
-  - 環境変数がコードを上書きして混乱を招く
-  - GitHubでバージョン管理できる
-  - デプロイ時の設定ミスを防ぐ
+#### GitHubプッシュの重要性
+- **教訓**: Railwayはリポジトリベースのデプロイなので、ローカルコミットだけでは不十分
+- **ワークフロー確立**:
+  1. ローカルで実装・テスト
+  2. `git commit`でコミット
+  3. **必ず`git push`でGitHubにプッシュ** ← これを忘れない
+  4. Railwayが自動デプロイ（通常2-5分）
 
 ### 発生した問題と解決
 
-#### 問題1: ffmpegパスがLinux環境で無効
-- **原因**: `C:\ProgramData\...`のようなWindowsパスを参照
-- **解決**: `shutil.which()`を最優先、環境判定を追加
-- **所要時間**: 30分
+**問題**: Railway 502 Bad Gatewayエラー
+- **原因1**: GitHubへのプッシュ漏れ（最新コードが反映されていない）
+- **原因2**: Railwayのポート設定未構成（エッジサーバーが接続できない）
+- **解決1**: `git push origin master`でプッシュ
+- **解決2**: Settings → Networking → Port = 8080に設定
+- **所要時間**: 合計20分
 
-#### 問題2: pipコマンドが見つからない（nixpacks）
-- **原因**: nixpacks.tomlの設定不備
-- **解決**: nixpacks.tomlを削除、aptfileに切り替え
-- **所要時間**: 15分
-
-#### 問題3: google-generativeaiモジュール欠落
-- **原因**: requirements.txtに記載漏れ
-- **解決**: `google-generativeai==0.8.3`を追加
+**問題**: ローカル.envファイルの誤解
+- **原因**: Windowsエクスプローラーでファイル名の表示が紛らわしかった
+- **解決**: `ls -la`コマンドで実際のファイル名を確認
+- **学び**: ファイル名はCLIツールで確認する方が確実
 - **所要時間**: 5分
-
-#### 問題4: TypeScript未使用変数エラー
-- **原因**: リファクタリング時の削除漏れ
-- **解決**: 未使用変数を削除
-- **所要時間**: 10分
-
-#### 問題5: CORSエラー（継続中）
-- **現状**: Railwayデプロイ完了後もCORSエラーが発生
-- **試した対策**:
-  - ✅ CORS_ORIGINS環境変数を削除
-  - ✅ config.pyにVercel URLを追加
-  - ✅ GitHubにpushして再デプロイ
-- **未解決**: 再デプロイの完了待ち、またはログ確認が必要
 
 ### 次セッションへの引き継ぎ事項
 
-#### 🔴 最重要: CORSエラーの最終解決
+#### 🎉 デプロイ完了！
+本番環境が完全に稼働しており、次のフェーズに進めます。
 
-**現状**:
-- Railwayデプロイは成功（Status: Success）
-- CORS_ORIGINS環境変数は削除済み
-- config.pyにVercel URL追加済み
-- しかしCORSエラーが継続
+#### 🟢 次回の優先タスク（生徒フィードバック後）
 
-**次回の確認ポイント**:
-1. **Railwayの再デプロイ確認**
-   - 最新のデプロイ時刻を確認（`CORS_ORIGINS`削除後か？）
-   - 環境変数タブで`CORS_ORIGINS`が完全に削除されているか再確認
-   - 必要に応じて手動で再デプロイ
+1. **ポーズ前の音被り問題の完全解決**
+   - 現状: 200msの無音挿入済みだが、まだ若干の音被りあり
+   - 対策案:
+     - ポーズ検知タイミングを0.1秒 → 0.3秒前に早める
+     - 無音期間を200ms → 400msに延長
+   - ファイル: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+   - 所要時間: 1-2時間
 
-2. **Railwayログの確認**
-   - 「View Logs」で起動ログを確認
-   - `Application startup complete`が表示されているか
-   - CORS設定が正しくロードされているか（ログに`localhost`や`vercel.app`が含まれるか）
+2. **生徒向け使用ガイド作成**
+   - アプリURL: `https://tts-app-ycaz.vercel.app`
+   - 基本的な使い方
+   - トラブルシューティング
+   - 所要時間: 30分
 
-3. **ブラウザでの再テスト**
-   - キャッシュクリア（Ctrl+Shift+R）
-   - デベロッパーツールでNetwork タブを確認
-   - Preflightリクエスト（OPTIONS）のレスポンスヘッダーを確認
-
-4. **最終手段: 環境変数で明示的に設定**
-   - もしコード設定が反映されない場合
-   - Railway環境変数に`CORS_ORIGINS`を再追加
-   - 値: `http://localhost:5173,https://tts-app-ycaz.vercel.app`
-
-#### 🟡 E2E動作確認
-
-CORSエラー解決後、以下をテスト:
-1. 画像アップロード → OCR
-2. TTS音声生成
-3. 音声再生、速度調整、ポーズ機能
-4. ブラウザコンソールでエラーがないことを確認
-
-#### 🟢 生徒向け使用ガイド作成
-
-E2Eテスト完了後:
-- `docs/USER_GUIDE.md`を作成
-- アプリURL、基本的な使い方、トラブルシューティングを記載
+3. **パフォーマンステストとUI改善**
+   - 5文、10文、20文での生成時間測定
+   - TTS生成の進捗表示UI追加
+   - 所要時間: 1時間
 
 #### 注意事項
-- PWA警告（pwa-192x192.png）は無視して問題なし
-- ffmpegはRailwayで自動インストール済み
-- 本番URLはGitHubでバージョン管理（環境変数ではなく）
+- Railway環境変数（GEMINI_API_KEY、OPENAI_API_KEY）は正しく設定済み
+- Railwayポート設定: 8080（変更しないこと）
+- デプロイ時は必ず`git push`を実行してからRailwayの再デプロイを確認
+- ローカルの`.env`ファイルのGEMINI_API_KEYの先頭スペースは削除済み
 
 ### 成果物リスト
 
-#### 新規作成ファイル
-- [x] `backend/aptfile` - ffmpegインストール設定
-- [x] `backend/nixpacks.toml` - 作成後に削除（aptfileに切り替え）
+#### 修正ファイル
+- [x] `backend/.env` - GEMINI_API_KEYの先頭スペース削除（ローカル環境用、Gitには含まれない）
 
-#### 更新ファイル
-- [x] `backend/app/services/openai_service.py` - クロスプラットフォームffmpeg検知
-- [x] `backend/requirements.txt` - google-generativeai追加
-- [x] `backend/app/core/config.py` - Vercel URL追加
-- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - 未使用変数削除
-- [x] `vercel.json` - 簡略化（SPA用rewritesのみ）
+#### Railway設定変更
+- [x] Settings → Networking → Port = 8080に設定
+- [x] 環境変数確認（GEMINI_API_KEY、OPENAI_API_KEY）
 
-#### コミット履歴
-1. `Fix Railway deployment: ffmpeg cross-platform support`
-2. `Fix Railway build: Use aptfile instead of nixpacks`
-3. `Add missing google-generativeai dependency`
-4. `Fix TypeScript errors: Remove unused variables`
-5. `Add Vercel production URL to CORS origins`
-
-### デプロイ結果
-
-#### Railway（バックエンド）
-- ✅ ビルド成功
-- ✅ デプロイ成功
-- ✅ URL: `https://tts-app-production.up.railway.app`
-- ⏳ CORS設定反映待ち
-
-#### Vercel（フロントエンド）
-- ✅ ビルド成功
-- ✅ デプロイ成功
-- ✅ URL: `https://tts-app-ycaz.vercel.app`
-- ✅ ページ表示確認済み
-
-#### 統合テスト
-- ⏳ CORSエラーにより未完了
-- 次セッションで解決予定
+#### デプロイ結果
+- [x] Railway: ✅ 正常稼働（`https://tts-app-production.up.railway.app`）
+- [x] Vercel: ✅ 正常稼働（`https://tts-app-ycaz.vercel.app`）
+- [x] CORS設定: ✅ 完全解決
+- [x] E2Eテスト: ✅ 全機能動作確認完了
 
 ---
 
@@ -242,6 +151,7 @@ E2Eテスト完了後:
 過去のセッション詳細は [SESSION_HISTORY.md](SESSION_HISTORY.md) を参照してください。
 
 **セッション一覧:**
+- [セッション #10 (2025-10-21)](SESSION_HISTORY.md#セッション-10---2025-10-21): Railway/Vercelデプロイ（CORSエラー未解決）
 - [セッション #9 (2025-10-21)](SESSION_HISTORY.md#セッション-9---2025-10-21): デプロイ設計とドキュメント作成
 - [セッション #8 (2025-10-21)](SESSION_HISTORY.md#セッション-8---2025-10-21): タイムスタンプ精度改善とポーズ機能デバッグ
 - [セッション #7 (2025-10-21)](SESSION_HISTORY.md#セッション-7---2025-10-21): 文ごとのTTS生成による正確なタイムスタンプ実装

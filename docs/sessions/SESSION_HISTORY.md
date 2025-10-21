@@ -5,11 +5,92 @@
 最新のセッション情報は [HANDOVER.md](HANDOVER.md) を参照してください。
 
 ## 目次
+- [セッション #10 - 2025-10-21](#セッション-10---2025-10-21)
 - [セッション #5 - 2025-10-20](#セッション-5---2025-10-20)
 - [セッション #4 - 2025-10-20](#セッション-4---2025-10-20)
 - [セッション #3 - 2025-10-20](#セッション-3---2025-10-20)
 - [セッション #2 - 2025-10-20](#セッション-2---2025-10-20)
 - [セッション #1 - 2025-10-20](#セッション-1---2025-10-20)
+
+---
+
+## セッション #10 - 2025-10-21
+
+### 実施内容
+
+#### 1. Railway（バックエンド）へのデプロイ
+
+**背景**:
+セッション#9でデプロイ設計とドキュメントを作成。セッション#10では実際のデプロイを実施し、複数のエラーに遭遇しながら解決した。
+
+**発生したエラーと解決策**:
+
+##### エラー1: ffmpegが見つからない
+- **ログ**: `[WARNING] ffmpeg not found in common locations`
+- **原因**: openai_service.pyがWindows専用パス（`C:\ProgramData\chocolatey\...`）のみを参照
+- **解決**:
+  1. `backend/aptfile`を作成してffmpegをインストール（Railway用）
+  2. `openai_service.py`のffmpeg検知ロジックをクロスプラットフォーム対応に修正
+     - まず`shutil.which("ffmpeg")`でPATH内を検索（Linux対応）
+     - 見つからない場合のみWindows専用パスを確認
+     - `platform.system()`で環境を自動判定
+
+##### エラー2: nixpacks.tomlでpipコマンドが見つからない
+- **エラー**: `pip: command not found`
+- **原因**: nixpacks.tomlの設定が不完全
+- **解決**: nixpacks.tomlを削除し、aptfileのみ使用（Railwayのデフォルト設定を活用）
+
+##### エラー3: ModuleNotFoundError: No module named 'google'
+- **原因**: requirements.txtに`google-generativeai`（Gemini APIクライアント）が欠けていた
+- **解決**: requirements.txtに`google-generativeai==0.8.3`を追加
+
+**最終的な構成**:
+- `backend/aptfile`: ffmpegのインストール（Ubuntu/Debianパッケージ）
+- `backend/Procfile`: 起動コマンド（既存）
+- `backend/requirements.txt`: Python依存関係（google-generativeai追加）
+
+#### 2. Vercel（フロントエンド）へのデプロイ
+
+**設定**:
+- Framework Preset: Vite
+- Root Directory: `frontend`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- 環境変数: `VITE_API_BASE_URL=https://tts-app-production.up.railway.app`
+
+**発生したエラーと解決策**:
+
+##### エラー1: vercel.jsonの非推奨設定
+- **問題**: 古いVercel v2形式（`builds`, `routes`）を使用
+- **解決**: vercel.jsonを簡略化（`rewrites`のみ保持、SPA用）
+
+##### エラー2: TypeScript build error
+- **エラー**:
+  - `Line 82: 'index' is declared but its value is never read`
+  - `Line 181: 'currentSentence' is declared but its value is never read`
+- **解決**: 未使用変数を削除
+
+#### 3. CORS設定の更新
+
+**手順**:
+1. `backend/app/core/config.py`のcors_originsにVercel URLを追加
+2. GitHubにpush → Railwayが自動再デプロイ
+3. Railway環境変数の`CORS_ORIGINS`を削除（コード内の設定を使用）
+
+### 技術的決定事項
+
+#### aptfileの採用（nixpacks.toml削除）
+- **決定**: aptfileでffmpegをインストール、nixpacks.tomlは不使用
+- **理由**: Railwayのデフォルト設定活用、シンプルさ
+
+#### クロスプラットフォームffmpeg検知
+- **決定**: `shutil.which()`を最初に使用
+- **理由**: Linux/Docker/Railwayでの互換性
+
+### デプロイ結果
+- Railway URL: `https://tts-app-production.up.railway.app`
+- Vercel URL: `https://tts-app-ycaz.vercel.app`
+- 状態: デプロイ成功、CORSエラーは次セッションで解決予定
 
 ---
 
