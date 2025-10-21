@@ -79,7 +79,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
     // Priority 2: Use backend-provided sentences with estimated timestamps
     if (sourceSentences && sourceSentences.length > 0) {
       let currentIndex = 0
-      return sourceSentences.map((sentenceText, index) => {
+      return sourceSentences.map((sentenceText) => {
         const startIndex = currentIndex
         const endIndex = currentIndex + sentenceText.length
         currentIndex = endIndex + 1 // +1 for space between sentences
@@ -178,7 +178,6 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
         index !== lastPausedSentenceRef.current &&
         !pauseTimeoutRef.current) { // Only trigger if no pause is already scheduled
 
-      const currentSentence = sentences[index]
       const nextSentence = sentences[index + 1]
 
       if (nextSentence) {
