@@ -4,29 +4,55 @@
 
 ## 🔴 最優先（次のセッション開始時）
 
+### CORSエラーの最終解決（セッション#10からの継続）
+
+- [ ] **Railwayの再デプロイ状況確認**
+  - [ ] 最新デプロイ時刻を確認（CORS_ORIGINS削除後か？）
+  - [ ] 環境変数タブでCORS_ORIGINSが完全に削除されているか再確認
+  - [ ] 必要に応じて手動で再デプロイ
+  - 所要時間: 5分
+
+- [ ] **Railwayログの確認**
+  - [ ] 「View Logs」で起動ログを確認
+  - [ ] `Application startup complete`が表示されているか
+  - [ ] CORS設定が正しくロードされているか
+  - 所要時間: 5分
+
+- [ ] **ブラウザでの再テスト**
+  - [ ] キャッシュクリア（Ctrl+Shift+R）
+  - [ ] デベロッパーツールでNetworkタブを確認
+  - [ ] Preflightリクエスト（OPTIONS）のレスポンスヘッダーを確認
+  - 所要時間: 5分
+
+- [ ] **最終手段: 環境変数で明示的に設定（必要に応じて）**
+  - [ ] Railway環境変数にCORS_ORIGINSを再追加
+  - [ ] 値: `http://localhost:5173,https://tts-app-ycaz.vercel.app`
+  - 所要時間: 5分
+
 ### デプロイ関連（生徒に使ってもらうため）
 
-- [ ] **Railwayへのバックエンドデプロイ**
-  - [ ] Railwayアカウント作成
-  - [ ] プロジェクト作成とGitHub連携
-  - [ ] 環境変数設定（GEMINI_API_KEY, OPENAI_API_KEY）
-  - [ ] デプロイ実行とURL確認
-  - **ガイド**: `docs/DEPLOYMENT.md`、`docs/DEPLOYMENT_CHECKLIST.md`
-  - 所要時間: 30分
+- [x] **Railwayへのバックエンドデプロイ** ✅
+  - [x] Railwayアカウント作成
+  - [x] プロジェクト作成とGitHub連携
+  - [x] 環境変数設定（GEMINI_API_KEY, OPENAI_API_KEY）
+  - [x] デプロイ実行とURL確認
+  - [x] ffmpegインストール設定（aptfile）
+  - [x] クロスプラットフォーム対応（openai_service.py）
+  - [x] google-generativeai依存関係追加
 
-- [ ] **Vercelへのフロントエンドデプロイ**
-  - [ ] Vercelアカウント作成
-  - [ ] プロジェクトインポートとGitHub連携
-  - [ ] 環境変数設定（VITE_API_BASE_URL）
-  - [ ] デプロイ実行とURL確認
-  - **ガイド**: `docs/DEPLOYMENT.md`、`docs/DEPLOYMENT_CHECKLIST.md`
-  - 所要時間: 30分
+- [x] **Vercelへのフロントエンドデプロイ** ✅
+  - [x] Vercelアカウント作成
+  - [x] プロジェクトインポートとGitHub連携
+  - [x] 環境変数設定（VITE_API_BASE_URL）
+  - [x] デプロイ実行とURL確認
+  - [x] TypeScriptビルドエラー修正
 
-- [ ] **CORS設定更新とデプロイ後の動作確認**
-  - [ ] Vercel URLをバックエンドのCORS設定に追加
-  - [ ] 変更をGitHubにpush（自動再デプロイ）
-  - [ ] E2Eテスト（画像アップロード→OCR→TTS→再生）
-  - 所要時間: 20分
+- [ ] **E2E動作確認**（CORSエラー解決後）
+  - [ ] 画像アップロード → OCR
+  - [ ] TTS音声生成
+  - [ ] 音声再生、速度調整、ポーズ機能
+  - [ ] ブラウザコンソールでエラーがないことを確認
+  - 所要時間: 15分
 
 - [ ] **生徒向け使用ガイド作成**
   - [ ] `docs/USER_GUIDE.md`作成
