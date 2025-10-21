@@ -11,30 +11,45 @@ import tempfile
 # Configure environment for pydub BEFORE importing it
 def _setup_ffmpeg_environment():
     """Setup environment variables for ffmpeg before pydub import"""
-    # Common ffmpeg installation paths (in order of preference)
-    possible_paths = [
-        # Chocolatey installation
-        (r"C:\ProgramData\chocolatey\bin\ffmpeg.exe", r"C:\ProgramData\chocolatey\bin\ffprobe.exe"),
-        (r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe",
-         r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"),
-        # Manual installation paths
-        (r"C:\ffmpeg\bin\ffmpeg.exe", r"C:\ffmpeg\bin\ffprobe.exe"),
-        (r"C:\Program Files\ffmpeg\bin\ffmpeg.exe", r"C:\Program Files\ffmpeg\bin\ffprobe.exe"),
-    ]
+    import platform
 
-    for ffmpeg_path, ffprobe_path in possible_paths:
-        if os.path.exists(ffmpeg_path) and os.path.exists(ffprobe_path):
-            # Add directory to PATH
-            ffmpeg_dir = os.path.dirname(ffmpeg_path)
-            if ffmpeg_dir not in os.environ.get('PATH', ''):
-                os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
+    # Check if ffmpeg is already in PATH (common in Linux/Railway/Docker)
+    ffmpeg_in_path = shutil.which("ffmpeg")
+    ffprobe_in_path = shutil.which("ffprobe")
 
-            print(f"[OK] ffmpeg found and configured: {ffmpeg_path}")
-            print(f"[OK] ffprobe found and configured: {ffprobe_path}")
-            return True
+    if ffmpeg_in_path and ffprobe_in_path:
+        print(f"[OK] ffmpeg found in PATH: {ffmpeg_in_path}")
+        print(f"[OK] ffprobe found in PATH: {ffprobe_in_path}")
+        return True
 
-    print(f"[WARNING] ffmpeg not found in common locations")
-    print(f"  Tried: {[p[0] for p in possible_paths]}")
+    # If not in PATH, check common installation locations (Windows-specific)
+    if platform.system() == "Windows":
+        possible_paths = [
+            # Chocolatey installation
+            (r"C:\ProgramData\chocolatey\bin\ffmpeg.exe", r"C:\ProgramData\chocolatey\bin\ffprobe.exe"),
+            (r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffmpeg.exe",
+             r"C:\ProgramData\chocolatey\lib\ffmpeg\tools\ffmpeg\bin\ffprobe.exe"),
+            # Manual installation paths
+            (r"C:\ffmpeg\bin\ffmpeg.exe", r"C:\ffmpeg\bin\ffprobe.exe"),
+            (r"C:\Program Files\ffmpeg\bin\ffmpeg.exe", r"C:\Program Files\ffmpeg\bin\ffprobe.exe"),
+        ]
+
+        for ffmpeg_path, ffprobe_path in possible_paths:
+            if os.path.exists(ffmpeg_path) and os.path.exists(ffprobe_path):
+                # Add directory to PATH
+                ffmpeg_dir = os.path.dirname(ffmpeg_path)
+                if ffmpeg_dir not in os.environ.get('PATH', ''):
+                    os.environ['PATH'] = ffmpeg_dir + os.pathsep + os.environ.get('PATH', '')
+
+                print(f"[OK] ffmpeg found and configured: {ffmpeg_path}")
+                print(f"[OK] ffprobe found and configured: {ffprobe_path}")
+                return True
+
+        print(f"[WARNING] ffmpeg not found in common locations")
+        print(f"  Tried: {[p[0] for p in possible_paths]}")
+    else:
+        print(f"[WARNING] ffmpeg not found in PATH on {platform.system()}")
+
     return False
 
 # Setup ffmpeg environment before any imports
