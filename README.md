@@ -9,12 +9,12 @@
 
 ## 主要機能
 
-- 📷 **画像OCR**: Claude APIによる高精度なテキスト抽出
+- 📷 **画像OCR**: Gemini APIによる高精度なテキスト抽出
 - 🔊 **TTS音声生成**: OpenAI TTS APIによる自然な音声合成
-- ⚡ **速度調整再生**: 0.5〜1.25倍速で音程を維持しながら再生
-- 🔁 **リピート機能**: 1文ごとの繰り返し再生
-- ⏸️ **ポーズ機能**: 1〜5秒の間隔設定
-- 💾 **オフライン対応**: IndexedDBキャッシュとPWA対応
+- ⚡ **速度調整再生**: 0.5〜2.0倍速で音程を維持しながら再生
+- 🔁 **文ごとのナビゲーション**: 前の文/次の文スキップ機能
+- ⏸️ **ポーズ機能**: 0〜5秒の間隔設定（0.5秒刻み）
+- 💾 **オフライン対応**: IndexedDBキャッシュとPWA対応（予定）
 
 ## 技術スタック
 
@@ -27,7 +27,7 @@
 ### バックエンド
 - Python 3.11
 - FastAPI
-- Claude API (OCR)
+- Gemini API (OCR)
 - OpenAI TTS API
 
 ### インフラ
@@ -110,7 +110,7 @@ npm run dev
 
 ### バックエンド (.env)
 ```
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
