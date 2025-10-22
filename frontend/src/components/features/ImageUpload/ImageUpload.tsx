@@ -7,6 +7,7 @@
 import { useState, useRef } from 'react'
 import { validateImageFile, compressImage, dataUrlToBase64 } from '@/services/image/compression'
 import { performOCR, performOCRMultiple } from '@/services/api/ocr'
+import { MESSAGES } from '@/constants/messages'
 import type { OCRResponse } from '@/types/api'
 import './styles.css'
 
@@ -15,18 +16,23 @@ export interface ImageUploadProps {
   onError: (error: string) => void
 }
 
+const MAX_IMAGES = 10
+
 export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [previews, setPreviews] = useState<string[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
+  const [showLimitWarning, setShowLimitWarning] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFiles = async (files: File[]) => {
-    // Validate maximum number of files
-    if (files.length > 10) {
-      onError('Maximum 10 images allowed')
-      return
+    // Show warning and truncate if exceeds limit
+    if (files.length > MAX_IMAGES) {
+      setShowLimitWarning(true)
+      // Only use first MAX_IMAGES files
+      files = Array.from(files).slice(0, MAX_IMAGES)
+      setTimeout(() => setShowLimitWarning(false), 5000) // Hide after 5 seconds
     }
 
     if (files.length === 0) {
@@ -34,7 +40,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
     }
 
     setIsProcessing(true)
-    setUploadProgress(`Processing ${files.length} image(s)...`)
+    setUploadProgress(`${files.length}${MESSAGES.UPLOAD_PROCESSING}`)
 
     try {
       const compressedImages: string[] = []
@@ -47,13 +53,13 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
         // Validate file
         const validation = validateImageFile(file)
         if (!validation.valid) {
-          onError(`Image ${i + 1}: ${validation.error || 'Invalid file'}`)
+          onError(`画像 ${i + 1}: ${validation.error || MESSAGES.ERROR_IMAGE_PROCESS}`)
           setIsProcessing(false)
           setUploadProgress('')
           return
         }
 
-        setUploadProgress(`Compressing image ${i + 1} of ${files.length}...`)
+        setUploadProgress(`${MESSAGES.UPLOAD_COMPRESSING} ${i + 1} / ${files.length}...`)
 
         // Compress image
         const compressed = await compressImage(file)
@@ -65,7 +71,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
       }
 
       setPreviews(compressedImages)
-      setUploadProgress(`Performing OCR on ${files.length} image(s)...`)
+      setUploadProgress(`${files.length}枚の画像を${MESSAGES.UPLOAD_OCR}...`)
 
       // Perform OCR (single or multiple)
       let ocrResult: OCRResponse
@@ -87,7 +93,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
       if (error instanceof Error) {
         onError(error.message)
       } else {
-        onError('Failed to process images')
+        onError(MESSAGES.ERROR_IMAGE_PROCESS)
       }
       setPreviews([])
     } finally {
@@ -131,6 +137,11 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
 
   return (
     <div className="image-upload">
+      {showLimitWarning && (
+        <div className="limit-warning">
+          ⚠️ {MESSAGES.ERROR_IMAGE_MAX}。最初の{MAX_IMAGES}枚のみアップロードします。
+        </div>
+      )}
       <div
         className={`upload-zone ${dragActive ? 'drag-active' : ''} ${isProcessing ? 'processing' : ''}`}
         onDragEnter={handleDrag}
@@ -152,7 +163,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
         {isProcessing ? (
           <div className="upload-status">
             <div className="spinner" />
-            <p>{uploadProgress || 'Processing images...'}</p>
+            <p>{uploadProgress || MESSAGES.UPLOAD_PROCESSING}</p>
           </div>
         ) : previews.length > 0 ? (
           <div className="preview">
@@ -162,7 +173,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
               ))}
             </div>
             <p className="hint">
-              {previews.length} image(s) uploaded. Click or drop more to replace.
+              {previews.length}{MESSAGES.UPLOAD_SUCCESS}
             </p>
           </div>
         ) : (
@@ -177,9 +188,10 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
             >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
             </svg>
-            <p className="title">Upload image(s)</p>
-            <p className="subtitle">Click or drag and drop</p>
-            <p className="info">JPEG or PNG, max 10MB each, up to 10 images</p>
+            <p className="title">{MESSAGES.UPLOAD_BUTTON}</p>
+            <p className="subtitle">{MESSAGES.UPLOAD_PROMPT}</p>
+            <p className="info">{MESSAGES.UPLOAD_INFO}</p>
+            <p className="limit-note">{MESSAGES.UPLOAD_LIMIT_NOTE}</p>
           </div>
         )}
       </div>

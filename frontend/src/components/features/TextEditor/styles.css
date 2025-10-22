@@ -22,9 +22,37 @@
   color: #333;
 }
 
+.char-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
 .char-count {
   font-size: 14px;
   color: #666;
+  font-weight: 500;
+}
+
+.char-count.warning {
+  color: #ff9800;
+  font-weight: 600;
+}
+
+.char-count.error {
+  color: #f44336;
+  font-weight: 600;
+}
+
+.char-message {
+  font-size: 12px;
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.char-count.error + .char-message {
+  color: #f44336;
 }
 
 .editor-textarea {
@@ -110,6 +138,48 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Progress Bar Styles */
+.generation-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  border: 1px solid #4CAF50;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #81C784);
+  border-radius: 4px;
+  width: 0%;
+}
+
+@keyframes fillProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.progress-text {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+  font-weight: 500;
 }
 
 @media (max-width: 640px) {

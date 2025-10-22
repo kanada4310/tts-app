@@ -3,6 +3,7 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/api'
+import { MESSAGES } from '@/constants/messages'
 import type { APIError } from '@/types/api'
 
 export class APIClientError extends Error {
@@ -53,12 +54,16 @@ export async function apiFetch<T>(
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new APIClientError('Request timeout')
+        throw new APIClientError(`タイムアウトしました。\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_NETWORK}`)
+      }
+      // Check if it's a network error
+      if (error.message.includes('fetch') || error.message.includes('network')) {
+        throw new APIClientError(`${MESSAGES.ERROR_NETWORK}\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_NETWORK}`)
       }
       throw new APIClientError(error.message)
     }
 
-    throw new APIClientError('Unknown error occurred')
+    throw new APIClientError('不明なエラーが発生しました')
   }
 }
 
@@ -138,11 +143,15 @@ export async function apiPostBinary(
 
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new APIClientError('Request timeout')
+        throw new APIClientError(`タイムアウトしました。\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_NETWORK}`)
+      }
+      // Check if it's a network error
+      if (error.message.includes('fetch') || error.message.includes('network')) {
+        throw new APIClientError(`${MESSAGES.ERROR_NETWORK}\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_NETWORK}`)
       }
       throw new APIClientError(error.message)
     }
 
-    throw new APIClientError('Unknown error occurred')
+    throw new APIClientError('不明なエラーが発生しました')
   }
 }

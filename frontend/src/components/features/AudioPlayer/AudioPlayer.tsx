@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { AUDIO_CONFIG, PAUSE_CONFIG } from '@/constants/audio'
+import { MESSAGES } from '@/constants/messages'
 import { detectSentences, extractFirstWords, estimateTimestamp } from '@/utils/textAnalysis'
 import type { SentenceBoundary, PauseConfig } from '@/types/audio'
 import type { SentenceTiming } from '@/types/api'
@@ -460,17 +461,17 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
   return (
     <div className="audio-player">
       <div className="player-header">
-        <h3>Audio Player</h3>
+        <h3>{MESSAGES.PLAYER_TITLE}</h3>
         <div className="player-info">
           <span className="speed-indicator">{speed.toFixed(2)}x</span>
           {sentences.length > 0 && (
             <span className="sentence-counter">
-              Sentence {currentSentenceIndex + 1} / {sentences.length}
+              {currentSentenceIndex + 1} / {sentences.length} {MESSAGES.PLAYER_SENTENCE}
             </span>
           )}
           {isPauseBetweenSentences && (
             <span className="pause-indicator">
-              ⏸ Pausing {pauseConfig.duration.toFixed(1)}s
+              ⏸ {MESSAGES.PLAYER_PAUSING} {pauseConfig.duration.toFixed(1)}s
             </span>
           )}
         </div>
@@ -479,7 +480,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
       {isLoading ? (
         <div className="player-loading">
           <div className="spinner" />
-          <p>Loading audio...</p>
+          <p>{MESSAGES.PLAYER_LOADING}</p>
         </div>
       ) : (
         <>
@@ -488,7 +489,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
               className="control-button"
               onClick={isPlaying ? handlePause : handlePlay}
               disabled={!audioRef.current}
-              title={isPlaying ? 'Pause' : 'Play'}
+              title={isPlaying ? MESSAGES.BUTTON_PAUSE : MESSAGES.BUTTON_PLAY}
             >
               {isPlaying ? (
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -506,7 +507,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
               className="control-button"
               onClick={handleStop}
               disabled={!audioRef.current}
-              title="Stop"
+              title={MESSAGES.BUTTON_STOP}
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <rect x="6" y="6" width="12" height="12" />
@@ -519,7 +520,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
                   className="control-button"
                   onClick={handlePreviousSentence}
                   disabled={!audioRef.current || currentSentenceIndex === 0}
-                  title="Previous Sentence"
+                  title={MESSAGES.BUTTON_PREVIOUS}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
@@ -530,7 +531,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
                   className="control-button"
                   onClick={handleNextSentence}
                   disabled={!audioRef.current || currentSentenceIndex === sentences.length - 1}
-                  title="Next Sentence"
+                  title={MESSAGES.BUTTON_NEXT}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
@@ -582,7 +583,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
           </div>
 
           <div className="speed-control">
-            <label>Speed:</label>
+            <label>{MESSAGES.PLAYER_SPEED}:</label>
             <input
               type="range"
               min={AUDIO_CONFIG.SPEED_MIN}
@@ -592,7 +593,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
               onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
             />
             <div className="speed-presets">
-              {[0.5, 0.75, 1.0, 1.25].map((presetSpeed) => (
+              {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((presetSpeed) => (
                 <button
                   key={presetSpeed}
                   className={`preset-button ${speed === presetSpeed ? 'active' : ''}`}
@@ -613,13 +614,13 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
                   checked={pauseConfig.enabled}
                   onChange={togglePause}
                 />
-                Pause between sentences
+                {MESSAGES.PLAYER_PAUSE_BETWEEN}
               </label>
             </div>
 
             {pauseConfig.enabled && (
               <div className="pause-duration">
-                <label>Duration: {pauseConfig.duration.toFixed(1)}s</label>
+                <label>{MESSAGES.PLAYER_PAUSE_DURATION}: {pauseConfig.duration.toFixed(1)}s</label>
                 <input
                   type="range"
                   min={PAUSE_CONFIG.MIN}

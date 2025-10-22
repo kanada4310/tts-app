@@ -26,7 +26,18 @@
       "Bash(python -m py_compile app/services/openai_service.py)",
       "Bash(git add .)",
       "Bash(git commit -m \"$(cat <<''EOF''\nセッション#8: タイムスタンプ精度改善とポーズ機能デバッグ\n\n- ffmpeg自動検知機能実装（_setup_ffmpeg_environment）\n- opus→mp3フォーマット変更（Chocolatey ffmpeg互換性対応）\n- タイムスタンプ比例補正（連結後の実際の長さで補正）\n- 文間に200ms無音挿入（AudioSegment.silent）\n- ポーズロジック改善（シーク機能、重複実行防止）\n- APIタイムアウト延長（60秒→300秒）\n- CORS設定拡張（port 5174, 5175追加）\n- デバッグログ追加（バックエンド＋フロントエンド）\n\n既知の問題: ポーズ前に次の文の音が一瞬被る（次回対応予定）\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nセッション#9: デプロイ設計とドキュメント作成\n\n## 実施内容\n\n### デプロイ設計\n- Vercel + Railway構成を選定\n- フロントエンド: Vercel (無料)\n- バックエンド: Railway ($5/月)\n\n### 新規作成ファイル\n- docs/DEPLOYMENT.md - 詳細なデプロイ手順\n- docs/DEPLOYMENT_CHECKLIST.md - ステップバイステップのチェックリスト\n- docs/USER_GUIDE.md - 生徒向け使用ガイド\n- .env.production.example - 本番環境変数テンプレート\n- vercel.json - Vercel設定\n- backend/railway.json - Railway設定\n- backend/Procfile - Railway起動コマンド\n- backend/runtime.txt - Python バージョン指定\n\n### 更新ファイル\n- backend/app/core/config.py - 本番URL追加用コメント\n- README.md - デプロイセクション追加\n- docs/sessions/TODO.md - デプロイを最優先タスクに変更\n\n### タスク優先度変更\n- デプロイ関連タスクを🔴最優先に移動\n- ポーズ機能改良を🟢中優先度に移動（生徒フィードバック後）\n\n## 次回の作業\n1. Railwayアカウント作成とバックエンドデプロイ\n2. Vercelアカウント作成とフロントエンドデプロイ\n3. CORS設定更新\n4. E2E動作確認\n5. 生徒へ共有\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push origin master)",
+      "Bash(curl -X GET https://tts-app-production.up.railway.app/docs -I)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rm:*)",
+      "Bash(curl:*)",
+      "Bash(test:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(timeout /t 10 /nobreak)"
     ],
     "deny": [],
     "ask": []

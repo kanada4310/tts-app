@@ -4,6 +4,7 @@ import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
 import { performTTS, performTTSWithTimings, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
+import { MESSAGES } from '@/constants/messages'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
 import './App.css'
 
@@ -25,7 +26,7 @@ function App() {
 
   const handleGenerateSpeech = async (text: string) => {
     if (!text.trim()) {
-      setError('No text to convert to speech')
+      setError(MESSAGES.ERROR_NO_TEXT)
       return
     }
 
@@ -60,7 +61,7 @@ function App() {
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('Failed to generate speech')
+        setError(MESSAGES.ERROR_TTS)
       }
     } finally {
       setIsGeneratingSpeech(false)
@@ -74,8 +75,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>TTS App</h1>
-        <p>OCR and Text-to-Speech Application</p>
+        <h1>{MESSAGES.APP_TITLE}</h1>
+        <p>{MESSAGES.APP_SUBTITLE}</p>
       </header>
 
       <main className="app-main">
@@ -118,22 +119,22 @@ function App() {
 
         {!ocrText && imagePreviews.length === 0 && (
           <div className="welcome-message">
-            <h2>Welcome!</h2>
-            <p>Upload image(s) to extract text and convert it to speech</p>
+            <h2>{MESSAGES.WELCOME_TITLE}</h2>
+            <p>{MESSAGES.WELCOME_DESCRIPTION}</p>
             <div className="features">
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                 </svg>
-                <h3>Upload Image(s)</h3>
-                <p>JPEG or PNG, up to 10MB each, max 10 images</p>
+                <h3>{MESSAGES.FEATURE_UPLOAD_TITLE}</h3>
+                <p>{MESSAGES.FEATURE_UPLOAD_DESC}</p>
               </div>
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
-                <h3>Extract Text</h3>
-                <p>Powered by Gemini AI</p>
+                <h3>{MESSAGES.FEATURE_EXTRACT_TITLE}</h3>
+                <p>{MESSAGES.FEATURE_EXTRACT_DESC}</p>
               </div>
               <div className="feature">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,8 +142,8 @@ function App() {
                   <circle cx="6" cy="21" r="2" />
                   <circle cx="15" cy="19" r="2" />
                 </svg>
-                <h3>Generate Speech</h3>
-                <p>High-quality TTS with speed control</p>
+                <h3>{MESSAGES.FEATURE_GENERATE_TITLE}</h3>
+                <p>{MESSAGES.FEATURE_GENERATE_DESC}</p>
               </div>
             </div>
           </div>
@@ -150,7 +151,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>Powered by Gemini AI and OpenAI TTS</p>
+        <p>{MESSAGES.FOOTER_POWERED_BY}</p>
       </footer>
     </div>
   )

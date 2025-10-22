@@ -8,6 +8,7 @@
  */
 
 import { IMAGE_CONFIG } from '@/constants/image'
+import { MESSAGES } from '@/constants/messages'
 
 export interface CompressionOptions {
   maxDimension?: number
@@ -151,16 +152,15 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
   if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(file.type as 'image/jpeg' | 'image/png')) {
     return {
       valid: false,
-      error: `Unsupported file type. Allowed: ${IMAGE_CONFIG.ALLOWED_TYPES.join(', ')}`
+      error: `${MESSAGES.ERROR_IMAGE_FORMAT}\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_FORMAT}`
     }
   }
 
   // Check file size
   if (file.size > IMAGE_CONFIG.MAX_SIZE) {
-    const maxSizeMB = IMAGE_CONFIG.MAX_SIZE / (1024 * 1024)
     return {
       valid: false,
-      error: `File too large. Maximum size: ${maxSizeMB}MB`
+      error: `${MESSAGES.ERROR_IMAGE_SIZE}\n${MESSAGES.ERROR_DETAILS}：\n・${MESSAGES.ERROR_CHECK_SIZE}`
     }
   }
 
