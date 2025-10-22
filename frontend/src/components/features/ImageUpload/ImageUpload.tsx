@@ -16,11 +16,16 @@ export interface ImageUploadProps {
   onError: (error: string) => void
 }
 
+interface ProcessedImage {
+  dataUrl: string
+  base64: string
+}
+
 const MAX_IMAGES = 10
 
 export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
   const [isProcessing, setIsProcessing] = useState(false)
-  const [previews, setPreviews] = useState<string[]>([])
+  const [processedImages, setProcessedImages] = useState<ProcessedImage[]>([])
   const [dragActive, setDragActive] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<string>('')
   const [showLimitWarning, setShowLimitWarning] = useState(false)
@@ -43,8 +48,7 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
     setUploadProgress(`${files.length}${MESSAGES.UPLOAD_PROCESSING}`)
 
     try {
-      const compressedImages: string[] = []
-      const base64Images: string[] = []
+      const newProcessedImages: ProcessedImage[] = []
 
       // Process each image
       for (let i = 0; i < files.length; i++) {
@@ -63,39 +67,80 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
 
         // Compress image
         const compressed = await compressImage(file)
-        compressedImages.push(compressed.dataUrl)
-
-        // Extract base64 from data URL
         const base64Image = dataUrlToBase64(compressed.dataUrl)
-        base64Images.push(base64Image)
+
+        newProcessedImages.push({
+          dataUrl: compressed.dataUrl,
+          base64: base64Image,
+        })
       }
 
-      setPreviews(compressedImages)
+      setProcessedImages(newProcessedImages)
       setUploadProgress(`${files.length}枚の画像を${MESSAGES.UPLOAD_OCR}...`)
 
       // Perform OCR (single or multiple)
-      let ocrResult: OCRResponse
-      if (files.length === 1) {
-        ocrResult = await performOCR(base64Images[0], {
-          exclude_annotations: true,
-          language: 'auto',
-        })
-      } else {
-        ocrResult = await performOCRMultiple(base64Images, {
-          exclude_annotations: true,
-          language: 'auto',
-          page_separator: '\n\n',
-        })
-      }
-
-      onOCRComplete(ocrResult, compressedImages)
+      await performOCRFromProcessedImages(newProcessedImages)
     } catch (error) {
       if (error instanceof Error) {
         onError(error.message)
       } else {
         onError(MESSAGES.ERROR_IMAGE_PROCESS)
       }
-      setPreviews([])
+      setProcessedImages([])
+    } finally {
+      setIsProcessing(false)
+      setUploadProgress('')
+    }
+  }
+
+  const performOCRFromProcessedImages = async (images: ProcessedImage[]) => {
+    const base64Images = images.map(img => img.base64)
+    const dataUrls = images.map(img => img.dataUrl)
+
+    let ocrResult: OCRResponse
+    if (images.length === 1) {
+      ocrResult = await performOCR(base64Images[0], {
+        exclude_annotations: true,
+        language: 'auto',
+      })
+    } else {
+      ocrResult = await performOCRMultiple(base64Images, {
+        exclude_annotations: true,
+        language: 'auto',
+        page_separator: '\n\n',
+      })
+    }
+
+    onOCRComplete(ocrResult, dataUrls)
+  }
+
+  const handleDeleteImage = async (index: number) => {
+    const newImages = processedImages.filter((_, i) => i !== index)
+    setProcessedImages(newImages)
+
+    if (newImages.length === 0) {
+      // Reset if no images left
+      onOCRComplete({
+        text: '',
+        sentences: [],
+        page_count: 0,
+        confidence: 'low',
+        processing_time: 0
+      }, [])
+      return
+    }
+
+    // Re-run OCR with remaining images
+    try {
+      setIsProcessing(true)
+      setUploadProgress(`${newImages.length}枚の画像を${MESSAGES.UPLOAD_OCR}...`)
+      await performOCRFromProcessedImages(newImages)
+    } catch (error) {
+      if (error instanceof Error) {
+        onError(error.message)
+      } else {
+        onError(MESSAGES.ERROR_IMAGE_PROCESS)
+      }
     } finally {
       setIsProcessing(false)
       setUploadProgress('')
@@ -165,15 +210,24 @@ export function ImageUpload({ onOCRComplete, onError }: ImageUploadProps) {
             <div className="spinner" />
             <p>{uploadProgress || MESSAGES.UPLOAD_PROCESSING}</p>
           </div>
-        ) : previews.length > 0 ? (
+        ) : processedImages.length > 0 ? (
           <div className="preview">
             <div className="preview-grid">
-              {previews.map((preview, index) => (
-                <img key={index} src={preview} alt={`Preview ${index + 1}`} className="preview-thumbnail" />
+              {processedImages.map((image, index) => (
+                <div key={index} className="preview-item">
+                  <img src={image.dataUrl} alt={`Preview ${index + 1}`} className="preview-thumbnail" />
+                  <button
+                    className="delete-button"
+                    onClick={() => handleDeleteImage(index)}
+                    title="この画像を削除"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
             <p className="hint">
-              {previews.length}{MESSAGES.UPLOAD_SUCCESS}
+              {processedImages.length}{MESSAGES.UPLOAD_SUCCESS}
             </p>
           </div>
         ) : (

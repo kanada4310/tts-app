@@ -37,7 +37,8 @@
       "Bash(test:*)",
       "Bash(dir:*)",
       "Bash(findstr:*)",
-      "Bash(timeout /t 10 /nobreak)"
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(timeout /t 5 /nobreak)"
     ],
     "deny": [],
     "ask": []

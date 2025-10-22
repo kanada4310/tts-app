@@ -46,6 +46,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
   const pauseTimeoutRef = useRef<number | null>(null)
   const progressBarRef = useRef<HTMLDivElement | null>(null)
   const lastPausedSentenceRef = useRef<number>(-1) // Track which sentence we last paused at
+  const [showShortcuts, setShowShortcuts] = useState(false)
 
   // Parse sentences from backend or fallback to client-side detection
   const sentences: SentenceBoundary[] = useMemo(() => {
@@ -108,6 +109,53 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
       preview: extractFirstWords(sentence.text, 7)
     }))
   }, [sourceText, sourceSentences, sentenceTimings, duration])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+
+      switch (e.key.toLowerCase()) {
+        case ' ':
+        case 'k':
+          e.preventDefault()
+          if (isPlaying) {
+            handlePause()
+          } else {
+            handlePlay()
+          }
+          break
+        case 'arrowleft':
+          e.preventDefault()
+          handlePreviousSentence()
+          break
+        case 'arrowright':
+          e.preventDefault()
+          handleNextSentence()
+          break
+        case 'arrowup':
+          e.preventDefault()
+          handleSpeedChange(Math.min(AUDIO_CONFIG.SPEED_MAX, speed + AUDIO_CONFIG.SPEED_STEP))
+          break
+        case 'arrowdown':
+          e.preventDefault()
+          handleSpeedChange(Math.max(AUDIO_CONFIG.SPEED_MIN, speed - AUDIO_CONFIG.SPEED_STEP))
+          break
+        case '?':
+          e.preventDefault()
+          setShowShortcuts(!showShortcuts)
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isPlaying, speed, showShortcuts])
 
   // Load audio when URL changes
   useEffect(() => {
@@ -460,6 +508,45 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
 
   return (
     <div className="audio-player">
+      {showShortcuts && (
+        <div className="shortcuts-overlay">
+          <div className="shortcuts-content">
+            <div className="shortcuts-header">
+              <h3>キーボードショートカット</h3>
+              <button onClick={() => setShowShortcuts(false)} className="shortcuts-close">
+                ×
+              </button>
+            </div>
+            <div className="shortcuts-list">
+              <div className="shortcut-item">
+                <kbd>スペース</kbd> または <kbd>K</kbd>
+                <span>再生/一時停止</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>←</kbd>
+                <span>前の文</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>→</kbd>
+                <span>次の文</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>↑</kbd>
+                <span>速度を上げる</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>↓</kbd>
+                <span>速度を下げる</span>
+              </div>
+              <div className="shortcut-item">
+                <kbd>?</kbd>
+                <span>このヘルプを表示</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="player-header">
         <h3>{MESSAGES.PLAYER_TITLE}</h3>
         <div className="player-info">

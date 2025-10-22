@@ -350,9 +350,138 @@
   justify-content: center;
 }
 
-@media (max-width: 640px) {
+/* Keyboard Shortcuts Overlay */
+.shortcuts-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.shortcuts-content {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.shortcuts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.shortcuts-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.shortcuts-close:hover {
+  background-color: #f0f0f0;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 6px;
+}
+
+.shortcut-item kbd {
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: monospace;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.shortcut-item span {
+  color: #666;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
   .audio-player {
     padding: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .control-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 44px;
+    height: 44px;
+  }
+
+  .control-button svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .progress-bar {
+    height: 16px !important;
+  }
+
+  .progress-fill {
+    height: 16px !important;
+  }
+
+  .sentence-marker {
+    width: 4px !important;
+    height: 16px !important;
   }
 
   .speed-presets,
@@ -362,12 +491,56 @@
 
   .preset-button {
     flex: 1;
-    min-width: calc(50% - 4px);
+    min-width: calc(33% - 6px);
+    padding: 10px 12px;
+    min-height: 44px;
+    font-size: 16px;
   }
 
   .player-info {
     flex-direction: column;
     align-items: flex-end;
     gap: 4px;
+    font-size: 14px;
+  }
+
+  .player-header h3 {
+    font-size: 16px;
+  }
+
+  .time-display {
+    font-size: 14px;
+  }
+
+  .speed-control label,
+  .pause-header label {
+    font-size: 15px;
+  }
+
+  /* Increase tap target size for range inputs */
+  .speed-control input[type="range"],
+  .pause-duration input[type="range"] {
+    height: 44px;
+    padding: 16px 0;
+  }
+
+  .speed-control input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .speed-control input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .pause-duration input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .pause-duration input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
   }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
+import { Tutorial } from '@/components/common/Tutorial'
 import { performTTS, performTTSWithTimings, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
@@ -74,6 +75,8 @@ function App() {
 
   return (
     <div className="app">
+      <Tutorial />
+
       <header className="app-header">
         <h1>{MESSAGES.APP_TITLE}</h1>
         <p>{MESSAGES.APP_SUBTITLE}</p>
