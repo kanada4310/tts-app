@@ -154,6 +154,18 @@
   pointer-events: none;
 }
 
+.sentence-marker-number {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #2196F3;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .progress-bar-container:hover .sentence-marker {
   opacity: 1;
 }
@@ -471,17 +483,56 @@
     height: 28px;
   }
 
+  /* Seekbar: increase height to 24px for better tap target */
   .progress-bar {
-    height: 16px !important;
+    height: 24px !important;
+    border-radius: 12px;
   }
 
   .progress-fill {
-    height: 16px !important;
+    height: 24px !important;
+    border-radius: 12px;
   }
 
+  /* Expand tap area using ::before pseudo-element */
+  .progress-bar-container::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    bottom: -20px;
+    z-index: 1;
+  }
+
+  /* Sentence markers: 8px width, 24px height */
   .sentence-marker {
-    width: 4px !important;
-    height: 16px !important;
+    width: 8px !important;
+    height: 24px !important;
+    border-radius: 4px;
+  }
+
+  /* Mobile-specific tooltip: larger and positioned below seekbar */
+  .progress-tooltip {
+    bottom: auto;
+    top: 100%;
+    margin-top: 12px;
+    margin-bottom: 0;
+    padding: 12px 16px;
+    font-size: 14px;
+    max-width: 80%;
+    white-space: normal;
+    word-wrap: break-word;
+    background-color: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+  }
+
+  .progress-tooltip::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.9);
   }
 
   .speed-presets,
@@ -543,4 +594,77 @@
     width: 24px;
     height: 24px;
   }
+}
+
+/* Repeat Playback Control Styles */
+.repeat-control {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.repeat-header {
+  margin-bottom: 12px;
+}
+
+.repeat-header label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.repeat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.repeat-count {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.repeat-count > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+.repeat-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.repeat-indicator {
+  font-size: 13px;
+  color: #4CAF50;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.auto-advance,
+.auto-pause {
+  padding-left: 0;
+}
+
+.auto-advance label,
+.auto-pause label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+}
+
+.auto-advance input[type="checkbox"],
+.auto-pause input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }

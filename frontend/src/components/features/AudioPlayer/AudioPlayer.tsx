@@ -41,6 +41,14 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
   const [tooltipPosition, setTooltipPosition] = useState(0)
   const [tooltipText, setTooltipText] = useState('')
 
+  // Repeat playback settings
+  const [repeatCount, setRepeatCount] = useState<number>(1) // 1, 3, 5, or -1 (infinite)
+  const [currentRepeat, setCurrentRepeat] = useState<number>(0)
+  const [autoAdvance, setAutoAdvance] = useState<boolean>(true)
+
+  // Auto-pause after sentence
+  const [autoPauseAfterSentence, setAutoPauseAfterSentence] = useState<boolean>(false)
+
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const intervalRef = useRef<number | null>(null)
   const pauseTimeoutRef = useRef<number | null>(null)
@@ -309,8 +317,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
       })
 
       audio.addEventListener('ended', () => {
-        handleStop()
-        onPlaybackComplete?.()
+        handleAudioEnded()
       })
 
       audio.addEventListener('timeupdate', () => {
@@ -381,6 +388,55 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
     setIsPauseBetweenSentences(false)
   }
 
+  const handleAudioEnded = () => {
+    // Check if we should repeat the current sentence
+    const newRepeatCount = currentRepeat + 1
+
+    // repeatCount: 1 (no repeat), 3, 5, -1 (infinite)
+    if (repeatCount === -1 || newRepeatCount < repeatCount) {
+      // Repeat: restart from the current sentence
+      setCurrentRepeat(newRepeatCount)
+      if (audioRef.current && sentences.length > 0) {
+        const currentSentence = sentences[currentSentenceIndex]
+        audioRef.current.currentTime = currentSentence.timestamp
+
+        // If auto-pause is enabled, pause instead of playing
+        if (autoPauseAfterSentence) {
+          setIsPlaying(false)
+        } else {
+          audioRef.current.play()
+          setIsPlaying(true)
+        }
+      }
+    } else {
+      // Move to next sentence or stop
+      setCurrentRepeat(0)
+
+      if (autoAdvance && currentSentenceIndex < sentences.length - 1) {
+        // Move to next sentence
+        const nextIndex = currentSentenceIndex + 1
+        setCurrentSentenceIndex(nextIndex)
+
+        if (audioRef.current && sentences.length > 0) {
+          const nextSentence = sentences[nextIndex]
+          audioRef.current.currentTime = nextSentence.timestamp
+
+          // If auto-pause is enabled, pause instead of playing
+          if (autoPauseAfterSentence) {
+            setIsPlaying(false)
+          } else {
+            audioRef.current.play()
+            setIsPlaying(true)
+          }
+        }
+      } else {
+        // End of all sentences or auto-advance disabled
+        handleStop()
+        onPlaybackComplete?.()
+      }
+    }
+  }
+
   const handleStop = () => {
     if (!audioRef.current) return
 
@@ -395,6 +451,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
     setIsPlaying(false)
     setCurrentTime(0)
     setCurrentSentenceIndex(0)
+    setCurrentRepeat(0)
     setIsPauseBetweenSentences(false)
     lastPausedSentenceRef.current = -1
   }
@@ -413,6 +470,26 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
 
     audioRef.current.currentTime = newTime
     setCurrentTime(newTime)
+
+    // On mobile: show tooltip on tap
+    if (window.innerWidth <= 768 && sentences.length > 0) {
+      const sentenceIndex = sentences.findIndex((sentence, i) => {
+        const nextSentence = sentences[i + 1]
+        return newTime >= sentence.timestamp &&
+               (!nextSentence || newTime < nextSentence.timestamp)
+      })
+
+      if (sentenceIndex !== -1) {
+        setTooltipVisible(true)
+        setTooltipPosition(percentage * 100)
+        setTooltipText(sentences[sentenceIndex].preview)
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+          setTooltipVisible(false)
+        }, 3000)
+      }
+    }
   }
 
   const handleProgressBarMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -647,13 +724,18 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
               {/* Sentence boundary markers */}
               {sentences.map((sentence, index) => {
                 const position = (sentence.timestamp / duration) * 100
+                const shouldShowNumber = sentences.length < 20 || (index + 1) % 5 === 0 || index === 0
                 return (
                   <div
                     key={index}
                     className="sentence-marker"
                     style={{ left: `${position}%` }}
                     title={sentence.preview}
-                  />
+                  >
+                    {shouldShowNumber && (
+                      <span className="sentence-marker-number">{index + 1}</span>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -729,6 +811,59 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Repeat Playback Control */}
+          <div className="repeat-control">
+            <div className="repeat-header">
+              <label>🔁 リピート再生</label>
+            </div>
+            <div className="repeat-options">
+              <div className="repeat-count">
+                <label>回数:</label>
+                <div className="repeat-presets">
+                  {[
+                    { value: 1, label: '1回' },
+                    { value: 3, label: '3回' },
+                    { value: 5, label: '5回' },
+                    { value: -1, label: '∞' }
+                  ].map((preset) => (
+                    <button
+                      key={preset.value}
+                      className={`preset-button ${repeatCount === preset.value ? 'active' : ''}`}
+                      onClick={() => setRepeatCount(preset.value)}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+                {currentRepeat > 0 && (
+                  <span className="repeat-indicator">
+                    ({currentRepeat + 1} / {repeatCount === -1 ? '∞' : repeatCount})
+                  </span>
+                )}
+              </div>
+              <div className="auto-advance">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoAdvance}
+                    onChange={(e) => setAutoAdvance(e.target.checked)}
+                  />
+                  次の文へ自動移動
+                </label>
+              </div>
+              <div className="auto-pause">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={autoPauseAfterSentence}
+                    onChange={(e) => setAutoPauseAfterSentence(e.target.checked)}
+                  />
+                  1文ごとに一時停止（スペースキーで次へ）
+                </label>
+              </div>
+            </div>
           </div>
         </>
       )}
