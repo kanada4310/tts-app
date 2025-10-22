@@ -124,6 +124,7 @@
   position: relative;
   width: 100%;
   margin-bottom: 20px;
+  padding-top: 30px; /* Space for sentence numbers above seekbar */
   cursor: pointer;
 }
 
@@ -156,7 +157,7 @@
 
 .sentence-marker-number {
   position: absolute;
-  top: -16px;
+  top: -24px; /* Moved further up for better visibility */
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
@@ -164,6 +165,7 @@
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
+  z-index: 10; /* Ensure it appears above other elements */
 }
 
 .progress-bar-container:hover .sentence-marker {
@@ -483,33 +485,46 @@
     height: 28px;
   }
 
-  /* Seekbar: increase height to 24px for better tap target */
+  /* Seekbar: increase height to 44px to match speed slider */
   .progress-bar {
-    height: 24px !important;
-    border-radius: 12px;
+    height: 44px !important;
+    border-radius: 22px;
   }
 
   .progress-fill {
-    height: 24px !important;
-    border-radius: 12px;
+    height: 44px !important;
+    border-radius: 22px;
   }
 
-  /* Expand tap area using ::before pseudo-element */
+  /* Expand tap area using ::before pseudo-element (no longer needed with 44px) */
   .progress-bar-container::before {
     content: '';
     position: absolute;
-    top: -20px;
+    top: 0;
     left: 0;
     right: 0;
-    bottom: -20px;
+    bottom: 0;
     z-index: 1;
   }
 
-  /* Sentence markers: 8px width, 24px height */
+  /* Sentence markers: 8px width, 44px height to match seekbar */
   .sentence-marker {
     width: 8px !important;
-    height: 24px !important;
+    height: 44px !important;
     border-radius: 4px;
+  }
+
+  /* Mobile: adjust padding for sentence numbers below seekbar */
+  .progress-bar-container {
+    padding-top: 0;
+    padding-bottom: 30px; /* Space for sentence numbers below seekbar */
+  }
+
+  /* Mobile: position sentence numbers below seekbar */
+  .sentence-marker-number {
+    top: auto;
+    bottom: -24px; /* Position below seekbar */
+    font-size: 12px; /* Slightly larger on mobile */
   }
 
   /* Mobile-specific tooltip: larger and positioned below seekbar */

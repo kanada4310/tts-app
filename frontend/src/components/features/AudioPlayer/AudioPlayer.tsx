@@ -41,6 +41,9 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
   const [tooltipPosition, setTooltipPosition] = useState(0)
   const [tooltipText, setTooltipText] = useState('')
 
+  // Touch/drag state for seekbar sliding
+  const [isDragging, setIsDragging] = useState(false)
+
   // Repeat playback settings
   const [repeatCount, setRepeatCount] = useState<number>(1) // 1, 3, 5, or -1 (infinite)
   const [currentRepeat, setCurrentRepeat] = useState<number>(0)
@@ -185,6 +188,13 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
       audioRef.current.playbackRate = speed
     }
   }, [speed])
+
+  // Keep tooltip visible while dragging
+  useEffect(() => {
+    if (isDragging) {
+      setTooltipVisible(true)
+    }
+  }, [isDragging])
 
   // Track current sentence and trigger pause on sentence change
   useEffect(() => {
@@ -460,6 +470,81 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
     setSpeed(newSpeed)
   }
 
+  // Common logic to calculate seek position from client X coordinate
+  const calculateSeekPosition = (clientX: number): number => {
+    if (!progressBarRef.current || !audioRef.current) return 0
+
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const offsetX = clientX - rect.left
+    const percentage = Math.max(0, Math.min(1, offsetX / rect.width))
+    return percentage * audioRef.current.duration
+  }
+
+  // Update tooltip based on position
+  const updateTooltip = (clientX: number) => {
+    if (!progressBarRef.current || !audioRef.current || sentences.length === 0) return
+
+    const rect = progressBarRef.current.getBoundingClientRect()
+    const offsetX = clientX - rect.left
+    const percentage = Math.max(0, Math.min(1, offsetX / rect.width))
+    const newTime = percentage * audioRef.current.duration
+
+    // Find the sentence at this time
+    const sentenceIndex = sentences.findIndex((sentence, i) => {
+      const nextSentence = sentences[i + 1]
+      return newTime >= sentence.timestamp &&
+             (!nextSentence || newTime < nextSentence.timestamp)
+    })
+
+    if (sentenceIndex !== -1) {
+      setTooltipVisible(true)
+      setTooltipPosition(percentage * 100)
+      setTooltipText(sentences[sentenceIndex].preview)
+    }
+  }
+
+  // Touch start handler
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true)
+    const touch = e.touches[0]
+    const newTime = calculateSeekPosition(touch.clientX)
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime
+      setCurrentTime(newTime)
+    }
+
+    updateTooltip(touch.clientX)
+  }
+
+  // Touch move handler (slide)
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault() // Prevent default scroll behavior
+
+    const touch = e.touches[0]
+    const newTime = calculateSeekPosition(touch.clientX)
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime
+      setCurrentTime(newTime)
+    }
+
+    updateTooltip(touch.clientX)
+  }
+
+  // Touch end handler
+  const handleTouchEnd = () => {
+    setIsDragging(false)
+
+    // Auto-hide tooltip after 3 seconds
+    setTimeout(() => {
+      if (!isDragging) {
+        setTooltipVisible(false)
+      }
+    }, 3000)
+  }
+
   const handleSeek = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!audioRef.current || !progressBarRef.current) return
 
@@ -717,6 +802,9 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
             onClick={handleSeek}
             onMouseMove={handleProgressBarMouseMove}
             onMouseLeave={handleProgressBarMouseLeave}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
             <div className="progress-bar">
               <div className="progress-fill" style={{ width: `${progress}%` }} />
