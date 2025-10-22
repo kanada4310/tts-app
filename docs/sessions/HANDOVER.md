@@ -5,6 +5,254 @@
 
 ---
 
+## セッション #16 - 2025-10-22
+
+### 実施内容
+
+#### 1. Phase 3A実装: シークバー改善とモバイル最適化（Phase 1）
+
+**背景**:
+セッション#15で作成した `PHASE3A_FIXES_AND_SENTENCE_LIST.md` の実装計画に基づき、Phase 1（シークバー改善）の全4タスクを実装。
+
+**実施した作業**:
+
+##### タスク1.1: シークバー高さを44pxに変更（15分）
+- モバイル時のシークバー高さを24px → 44pxに変更
+- 速度スライダーと同じ高さに統一（Apple HIG準拠）
+- border-radius調整（12px → 22px）
+- 文マーカー高さも44pxに統一
+- **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
+
+##### タスク1.2: スライド操作実装（30分）
+- `isDragging` state追加
+- `calculateSeekPosition` 関数実装（タッチ位置から再生位置を計算）
+- `handleTouchStart`, `handleTouchMove`, `handleTouchEnd` 実装
+- `e.preventDefault()` でスクロール防止
+- progress-bar-containerにタッチイベント追加
+- **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+
+##### タスク1.3: ツールチップ常時表示（30分、タスク1.2と統合）
+- `updateTooltip` 関数実装
+- useEffectで`isDragging`中にツールチップ強制表示
+- スライド中、指の位置に合わせてツールチップ移動
+- スライド終了後、3秒で自動消去
+- **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+
+##### タスク1.4: 文番号表示修正（15分）
+- デスクトップ: progress-bar-containerに`padding-top: 30px`追加
+- デスクトップ: 文番号の`top`を-16px → -24pxに変更
+- デスクトップ: `z-index: 10`追加
+- モバイル: `padding-bottom: 30px`に変更
+- モバイル: 文番号をシークバー下に配置（`bottom: -24px`）
+- モバイル: `font-size: 12px`に拡大
+- **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
+
+**Git commit**: `be6b5e7` - Phase 3A修正: シークバー改善とモバイル最適化
+
+---
+
+#### 2. Phase 3A実装: 文リスト機能（Phase 2）
+
+**実施した作業**:
+
+##### タスク2.1: App.tsx修正（表示切り替え）（20分）
+- `showText` state削除（不要になった）
+- `audioRef`, `currentSentenceIndex`, `isPlaying` state追加
+- `handleSentenceSeek` 関数実装
+  - 文クリック時に音声位置をシーク
+  - 停止中なら再生開始
+- TextEditor表示条件変更: `ocrText && !audioUrl`（音声生成前のみ）
+- SentenceList追加: `audioUrl && ocrSentences.length > 0`（音声生成後）
+- テキスト表示/非表示トグルボタン削除
+- **ファイル**: `frontend/src/App.tsx`
+
+##### タスク2.2-2.6: SentenceListコンポーネント作成（統合実装、1.5時間）
+- **新規ファイル**: `SentenceList.tsx`（123行）、`index.ts`、`styles.css`（211行）
+- Props定義: sentences, sentenceTimings, currentSentenceIndex, isPlaying, onSentenceClick
+- **折り畳み機能**（タスク2.3）
+  - `isCollapsed` state
+  - 展開/折り畳むボタン
+- **可視範囲制御**（タスク2.4）
+  - 再生中: 現在文+前後3文（計7文）を強調表示
+  - 停止中: 全文を通常の濃さで表示
+  - `getVisibleRange`, `isInVisibleRange` 関数実装
+  - CSS: `.out-of-range { opacity: 0.3; }`
+- **自動スクロール**（タスク2.5）
+  - `autoScroll` state（トグル可能）
+  - useEffectで`currentSentenceIndex`変化を監視
+  - `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- **仮想スクロール**（タスク2.6）
+  - 停止中は全文を自由にスクロール可能
+  - `max-height: 500px`、`overflow-y: auto`
+  - 50文未満のため、react-window不要と判断
+- **文クリックでシーク**（タスク2.7の一部）
+  - `onClick={() => onSentenceClick(index)}`
+
+##### タスク2.7: AudioPlayer型更新（20分）
+- AudioPlayerPropsに3つの新しいprops追加
+  - `audioRef?: React.RefObject<HTMLAudioElement>`（将来の拡張用）
+  - `onSentenceChange?: (index: number) => void`
+  - `onPlayStateChange?: (isPlaying: boolean) => void`
+- `setCurrentSentenceIndex`に`onSentenceChange?.(index)`追加
+- `handlePlay`に`onPlayStateChange?.(true)`追加
+- `handlePause`に`onPlayStateChange?.(false)`追加
+- **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+
+##### タスク2.8: スタイリング（30分、タスク2.2と統合）
+- カード型デザイン（border-radius: 12px、box-shadow）
+- ヘッダー: 文数表示、自動スクロールチェックボックス、折り畳みボタン
+- 文アイテム: ホバーエフェクト、現在文は緑色背景（`#e8f5e9`）
+- モバイル最適化（768px以下）
+  - ヘッダーを縦並びレイアウト
+  - ボタン `min-height: 44px`（Apple HIG準拠）
+  - 文アイテム: `padding: 16px`、`min-height: 44px`
+- カスタムスクロールバー（Webkit）
+- フォーカススタイル（アクセシビリティ）
+- **ファイル**: `frontend/src/components/features/SentenceList/styles.css`
+
+**Git commit**: `85149b6` - Phase 3A新機能: 文リスト実装
+
+---
+
+### 技術的決定事項
+
+#### audioRef管理の方針変更
+
+**問題**:
+実装計画書では「App.tsxでaudioRefを管理し、AudioPlayerに渡す」方針だったが、AudioPlayerが既に内部でaudioRefを管理していた。
+
+**決定**:
+- AudioPlayerは引き続き内部でaudioRefを管理
+- App.tsxとの連携はコールバック方式（`onSentenceChange`, `onPlayStateChange`）を採用
+- App.tsxの`audioRef`は将来の拡張用として残す（現在は未使用）
+
+**理由**:
+- AudioPlayerのリファクタリングを最小限に抑える
+- 既存の実装を大きく変更するリスクを回避
+- コールバック方式でも要件を満たせる
+
+**代替案**:
+- App.tsxでaudioRefを作成し、AudioPlayerに渡す方法
+- しかし、AudioPlayer内部の多数の箇所で`audioRef.current`を参照しているため、変更範囲が大きい
+
+---
+
+#### タスクの統合実装
+
+**決定**:
+タスク2.2-2.6（SentenceListのコア機能）を1つのコンポーネントで統合実装
+
+**理由**:
+- 折り畳み、可視範囲、自動スクロール、文クリックは密接に関連
+- 分離すると状態管理が複雑化
+- 1つのコンポーネントで実装することで、保守性とパフォーマンスが向上
+
+**効果**:
+- 実装時間の短縮（予定3時間 → 実績1.5時間）
+- コードの可読性向上
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: Edit toolでインデント不一致エラー
+
+**症状**:
+Edit toolで文字列置換を試みると、`String to replace not found in file`エラーが発生
+
+**原因**:
+コピー元のインデントとファイル内の実際のインデントが異なる（スペースとタブの混在など）
+
+**解決方法**:
+1. Read toolで該当箇所を再確認
+2. 正確なインデントを確認
+3. 短い範囲で再試行
+
+**所要時間**: 5分程度
+
+**再発防止**:
+- Edit時は常にRead toolで事前確認
+- 短い範囲で置換を試みる
+
+---
+
+#### 問題2: 大規模実装計画書のトークン消費
+
+**症状**:
+`PHASE3A_FIXES_AND_SENTENCE_LIST.md`が1199行（27KB）と大規模で、全体を読み込むとトークンを大量消費
+
+**解決方法**:
+- 全体を一度に読み込まず、タスクごとに必要な部分のみ参照
+- 実装計画書の構成が明確だったため、該当セクションを直接参照可能
+
+**効果**:
+- トークン消費を抑制
+- 必要な情報に素早くアクセス
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### 🎯 プロジェクト状況
+
+**Phase 3A完全完了！**
+- ✅ シークバー改善（モバイル最適化）
+- ✅ 文リスト機能
+- ✅ Git commit & push完了
+
+**次の候補タスク**（ユーザーからの指示待ち）:
+1. **フェーズ3B: レイアウト改善**（0.5-2.5時間）
+   - プリセットボタンを2列3行に配置（スマホのみ）
+   - プレイヤーの折りたたみ機能（オプション）
+
+2. **フェーズ3B: 学習管理・記録**（7-9時間）
+   - 学習記録（練習履歴）
+   - お気に入り・ブックマーク機能
+   - 速度変更の段階的練習モード
+
+3. **動作確認とバグ修正**
+   - デスクトップ・モバイルでE2Eテスト
+   - ポーズ前の音被り問題の完全解決（中優先度）
+
+#### ⚠️ 注意事項
+
+- **showText state削除**: App.tsxから削除済み。App.cssにtext-toggle関連のスタイルが残っている可能性あり（要確認）
+- **audioRef未使用**: App.tsxの`audioRef`は現在未使用だが、削除しない（将来の拡張用）
+- **PHASE3A_FIXES_AND_SENTENCE_LIST.md**: 次回セッションでは参照不要（実装完了）
+
+#### 📋 次回セッションで参照すべきファイル
+
+**フェーズ3Bを実装する場合**:
+- `docs/sessions/TODO.md` - タスクリスト
+- `docs/LEARNING_ENHANCEMENT.md` - 学習機能の理論的背景
+- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - 既存実装
+- `frontend/src/App.tsx` - 状態管理
+
+**動作確認する場合**:
+- `docs/DEPLOYMENT.md` - デプロイ手順
+- ローカル環境: `npm run dev`（フロントエンド）、`uvicorn app.main:app --reload`（バックエンド）
+
+---
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `frontend/src/components/features/SentenceList/SentenceList.tsx` (123行) - 文リストコンポーネント
+- [x] `frontend/src/components/features/SentenceList/index.ts` (2行) - エクスポート
+- [x] `frontend/src/components/features/SentenceList/styles.css` (211行) - スタイル
+
+#### 更新ファイル
+- [x] `frontend/src/App.tsx` - 状態管理、SentenceList統合、showText削除
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - 型定義、コールバック追加、タッチイベント
+- [x] `frontend/src/components/features/AudioPlayer/styles.css` - シークバー44px、文番号位置修正
+
+#### Git commit
+- [x] `be6b5e7` - Phase 3A修正: シークバー改善とモバイル最適化
+- [x] `85149b6` - Phase 3A新機能: 文リスト実装
+- [x] リモートへプッシュ完了
+
+---
+
 ## セッション #15 - 2025-10-22
 
 ### 実施内容
