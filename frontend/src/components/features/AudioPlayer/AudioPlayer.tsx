@@ -22,10 +22,22 @@ export interface AudioPlayerProps {
   sourceText?: string // The original OCR text for fallback
   sourceSentences?: string[] // Pre-parsed sentences from backend
   sentenceTimings?: SentenceTiming[] // Precise timings from TTS
+  audioRef?: React.RefObject<HTMLAudioElement> // External audio ref from App.tsx
   onPlaybackComplete?: () => void
+  onSentenceChange?: (index: number) => void // Callback when sentence changes
+  onPlayStateChange?: (isPlaying: boolean) => void // Callback when play state changes
 }
 
-export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTimings, onPlaybackComplete }: AudioPlayerProps) {
+export function AudioPlayer({
+  audioUrl,
+  sourceText,
+  sourceSentences,
+  sentenceTimings,
+  audioRef: externalAudioRef,
+  onPlaybackComplete,
+  onSentenceChange,
+  onPlayStateChange
+}: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -211,6 +223,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
     if (index !== -1 && index !== currentSentenceIndex) {
       const previousIndex = currentSentenceIndex
       setCurrentSentenceIndex(index)
+      onSentenceChange?.(index)
 
       // Trigger pause when moving to a new sentence (not on initial load)
       if (pauseConfig.enabled &&
@@ -378,6 +391,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
       audioRef.current.playbackRate = speed
       await audioRef.current.play()
       setIsPlaying(true)
+      onPlayStateChange?.(true)
       setIsPauseBetweenSentences(false)
     } catch (error) {
       console.error('Error playing audio:', error)
@@ -395,6 +409,7 @@ export function AudioPlayer({ audioUrl, sourceText, sourceSentences, sentenceTim
 
     audioRef.current.pause()
     setIsPlaying(false)
+    onPlayStateChange?.(false)
     setIsPauseBetweenSentences(false)
   }
 
