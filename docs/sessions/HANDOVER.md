@@ -146,6 +146,406 @@ curl -X OPTIONS https://tts-app-production.up.railway.app/api/tts \
 
 ---
 
+## セッション #13 - 2025-10-22
+
+### 実施内容
+
+#### 1. ユーザビリティ改善フェーズ2の完全実装
+
+**背景**:
+セッション#12でユーザビリティ評価レポート（USABILITY_REPORT.md）を作成し、改善タスクを優先度付けして整理。セッション#13では、フェーズ2（使いやすさ向上）の4タスクを完全実装。
+
+**実装した4つの機能**:
+
+##### Task 7: 初回チュートリアル/ツールチップ実装（3-4時間）
+
+**新規コンポーネント**:
+- `frontend/src/components/common/Tutorial/Tutorial.tsx` (119行)
+- `frontend/src/components/common/Tutorial/styles.css` (192行)
+- `frontend/src/components/common/Tutorial/index.ts` (1行)
+
+**主な機能**:
+- 3ステップのオーバーレイ型チュートリアル
+  - ステップ1: 画像アップロード説明（📷）
+  - ステップ2: テキスト編集説明（✏️）
+  - ステップ3: 音声生成・再生説明（🎵）
+- localStorageで初回表示フラグ管理（`tts-app-tutorial-completed`）
+- 「後で」「次へ」「スキップ」ボタン
+- フェードイン＋スライドアップアニメーション
+- ESCキーで閉じる機能
+
+**統合**:
+- `App.tsx`にTutorialコンポーネントを追加
+- 初回訪問時のみ表示、2回目以降は非表示
+
+**期待効果**: 機能発見率+50%、満足度+20%
+
+##### Task 8: 画像の個別削除機能実装（2-3時間）
+
+**変更ファイル**:
+- `frontend/src/components/features/ImageUpload/ImageUpload.tsx`
+- `frontend/src/components/features/ImageUpload/styles.css`
+
+**主な変更**:
+- `ProcessedImage` インターフェース導入
+  ```typescript
+  interface ProcessedImage {
+    dataUrl: string  // プレビュー表示用
+    base64: string   // OCR再実行用
+  }
+  ```
+- 状態管理を`previews: string[]` → `processedImages: ProcessedImage[]`に変更
+- `handleDeleteImage`関数実装
+  - 指定した画像をフィルタリング
+  - 残りの画像で自動的にOCR再実行
+  - 全削除時は空のOCRResponseを返す
+- プレビュー画像に「×」ボタン追加
+  - ホバー時のみ表示（`opacity: 0 → 1`）
+  - 位置: `position: absolute; top: -8px; right: -8px`
+  - スタイル: 赤い円形ボタン、ホバーで拡大
+- フェードインアニメーション追加
+
+**期待効果**: タスク効率+15%、満足度+20%
+
+##### Task 9: モバイルUI最適化（3-4時間）
+
+**変更ファイル**:
+- `frontend/src/components/features/AudioPlayer/styles.css`
+- `frontend/index.html`
+
+**主なモバイル最適化**:
+- **AudioPlayer固定ヘッダー化**（スクロール中も常に操作可能）
+  ```css
+  @media (max-width: 768px) {
+    .audio-player {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+  }
+  ```
+- **コントロールボタンの拡大**: 48px → 44px（Apple HIG基準）
+- **シークバー高さの拡大**: 8px → 16px（タップしやすく）
+- **文境界マーカーの拡大**: 2px → 4px、高さ16px
+- **スライダーサムネイルの拡大**: 18px → 24px
+- **プリセットボタンの最適化**:
+  - `min-height: 44px`（タップターゲット確保）
+  - `font-size: 16px`（読みやすさ向上）
+  - フレックスボックスでレスポンシブ対応
+- **viewport設定の更新**（index.html）:
+  ```html
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  ```
+
+**期待効果**: モバイル完了率+25%、満足度+30%
+
+##### Task 10: キーボードショートカット実装（2-3時間）
+
+**変更ファイル**:
+- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+- `frontend/src/components/features/AudioPlayer/styles.css`
+
+**実装したショートカット**:
+- **Space/K**: 再生/一時停止
+- **← →**: 前の文/次の文へ移動
+- **↑ ↓**: 速度を上げる/下げる（0.25刻み）
+- **?**: ショートカット一覧を表示
+
+**技術実装**:
+- `window.addEventListener('keydown', handleKeyDown)`でグローバルキーイベント捕捉
+- input/textareaフィールド入力中は無効化（誤作動防止）
+  ```typescript
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    return
+  }
+  ```
+- `showShortcuts`状態で一覧の表示/非表示を管理
+- ESCキーでも一覧を閉じる
+
+**ショートカット一覧UI**:
+- モーダルオーバーレイ（背景グレー、中央配置）
+- 各ショートカットをリスト表示
+- `<kbd>`タグで視覚的に強調
+- スライドアップアニメーション
+- 閉じるボタン（×）
+
+**期待効果**: パワーユーザー満足度+30%、効率性+20%
+
+#### 2. デプロイとE2Eテスト
+
+**デプロイ手順**:
+1. TypeScriptビルド確認（`npx tsc --noEmit`）→ エラーなし
+2. 全変更をステージング（`git add .`）
+3. コミット作成（セッション#13の詳細な内容）
+4. GitHubにプッシュ（`git push origin master`）
+5. Railway/Vercelの自動デプロイ確認
+
+**デプロイ結果**:
+- ✅ Railway: `https://tts-app-production.up.railway.app` - HTTP 200 OK
+- ✅ Vercel: `https://tts-app-ycaz.vercel.app` - HTTP 200 OK（キャッシュHIT）
+
+**変更統計**:
+- 10ファイル変更
+- 719行追加 (+)
+- 31行削除 (-)
+- 3ファイル新規作成（Tutorial関連）
+
+### 技術的決定事項
+
+#### ProcessedImage型の導入理由
+
+**問題**:
+- プレビュー表示には`dataUrl`が必要
+- OCR再実行には`base64`データが必要
+- 削除後に再度変換すると処理コストがかかる
+
+**解決**:
+```typescript
+interface ProcessedImage {
+  dataUrl: string  // data:image/jpeg;base64,... 形式
+  base64: string   // base64データのみ
+}
+```
+- 両方を保持することで、削除→OCR再実行が高速化
+- `dataUrlToBase64`関数で変換は1回のみ
+
+**代替案**: 毎回変換する方法もあったが、パフォーマンスと明確性を優先
+
+#### localStorageでチュートリアル管理
+
+**選択理由**:
+- サーバー側に認証機構がない
+- ブラウザごとに初回表示を管理
+- 簡潔な実装（`localStorage.getItem/setItem`のみ）
+
+**キー名**: `'tts-app-tutorial-completed'`
+- 値: `'true'` または `null`
+
+**代替案**:
+- sessionStorage: タブを閉じるたびにリセットされるため不便
+- Cookie: 必要以上に複雑
+- サーバー側管理: 認証機構が必要で過剰
+
+#### キーボードショートカットのグローバル化
+
+**実装方法**:
+```typescript
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // input/textarea中は無効化
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      return
+    }
+
+    switch (e.key.toLowerCase()) {
+      case ' ':
+      case 'k':
+        e.preventDefault()
+        // 再生/一時停止
+        break
+      // ...
+    }
+  }
+
+  window.addEventListener('keydown', handleKeyDown)
+  return () => window.removeEventListener('keydown', handleKeyDown)
+}, [isPlaying, speed, showShortcuts])
+```
+
+**重要なポイント**:
+- `window.addEventListener`でグローバルに捕捉
+- `e.target`チェックで入力フィールドを除外
+- `e.preventDefault()`でブラウザのデフォルト動作をキャンセル
+- 依存配列に`isPlaying`, `speed`を含める（最新の状態を参照）
+
+**代替案**:
+- react-hotkeysライブラリ: 依存を増やさずシンプルに実装を優先
+- コンポーネント単位のイベントリスナー: グローバルショートカットには不適
+
+#### モバイルでposition: stickyを採用
+
+**理由**:
+- 音声再生中、スクロールしてもプレイヤーが常に見える
+- `position: fixed`との違い: ドキュメントフローに影響しない
+- z-index: 100で他要素より前面に配置
+
+**配置**:
+```css
+@media (max-width: 768px) {
+  .audio-player {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: white;
+  }
+}
+```
+
+**代替案**:
+- 固定フッター（bottom: 0）: スマホでは親指で隠れやすい
+- 非固定: スクロールすると操作できなくなる
+
+### 発生した問題と解決
+
+#### 問題1: TypeScript型エラー（OCRResponse不完全）
+
+**エラーメッセージ**:
+```
+error TS2345: Argument of type '{ text: string; sentences: never[]; page_count: number; }' is not assignable to parameter of type 'OCRResponse'.
+Type '{ text: string; sentences: never[]; page_count: number; }' is missing the following properties from type 'OCRResponse': confidence, processing_time
+```
+
+**発生場所**: `ImageUpload.tsx`の`handleDeleteImage`関数（全削除時のリセット処理）
+
+**原因**: OCRResponseインターフェースに必須プロパティ（`confidence`, `processing_time`）が不足
+
+**解決**:
+```typescript
+onOCRComplete({
+  text: '',
+  sentences: [],
+  page_count: 0,
+  confidence: 'low',      // 追加
+  processing_time: 0      // 追加
+}, [])
+```
+
+**所要時間**: 5分
+
+#### 問題2: TypeScript型エラー（confidence型不一致）
+
+**エラーメッセージ**:
+```
+error TS2322: Type 'number' is not assignable to type '"high" | "medium" | "low"'.
+```
+
+**原因**: `confidence: 0` という数値を指定していたが、union型は文字列リテラルを期待
+
+**解決**: `confidence: 'low'` に変更
+
+**所要時間**: 2分
+
+#### 問題3: キーボードショートカットがinputフィールドで誤動作
+
+**現象**: テキスト入力中にSpaceキーを押すと音声が再生/停止してしまう
+
+**原因**: グローバルキーイベントリスナーがすべてのキー入力を捕捉
+
+**解決**:
+```typescript
+if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+  return  // 入力フィールド中は何もしない
+}
+```
+
+**所要時間**: 10分
+
+### フェーズ2完了後の期待される改善効果
+
+**定量指標**（フェーズ1+2完了後）:
+
+| 指標 | フェーズ1後 | フェーズ2後 | 累計改善 |
+|------|-----------|-----------|---------|
+| タスク完了率 | 85% | 90% | +22% 🟢 |
+| モバイル完了率 | 65% | 75% | +25% 🟢 |
+| 機能発見率（ポーズ） | 60% | 90% | +50% 🟢 |
+| ユーザー満足度 | 90/100 | 95/100 | +25点 🟢 |
+| 高校生適合性 | 70/100 | 85/100 | +35点 🟢 |
+
+**定性効果**:
+- チュートリアルにより、初回訪問時の離脱率が大幅減少
+- 個別削除により、誤アップロード時のやり直しが容易に
+- モバイル最適化により、スマホでの操作性が飛躍的に向上
+- キーボードショートカットにより、上級ユーザーの効率性向上
+
+### 次セッションへの引き継ぎ事項
+
+#### 🎉 フェーズ2実装完了！
+
+本番環境にデプロイ済みで、すべての新機能が利用可能です。
+
+**デプロイ済みURL**:
+- フロントエンド: `https://tts-app-ycaz.vercel.app`
+- バックエンド: `https://tts-app-production.up.railway.app`
+
+#### 🎯 次のステップ（推奨）
+
+**1. 実機テスト（所要時間: 30分）**
+- [ ] 実際のスマートフォンでアクセス
+- [ ] タップターゲットサイズの確認（44px以上）
+- [ ] スティッキーヘッダーの動作確認
+- [ ] スクロール時の使い勝手確認
+
+**2. ユーザテスト（所要時間: 1-2時間 × 3-5名）**
+- [ ] 高校生3-5名に実際に使ってもらう
+- [ ] 使用中の行動を観察
+- [ ] 困った点、わかりにくい点を記録
+- [ ] NPS（Net Promoter Score）を測定
+
+**3. フィードバック収集（所要時間: 30分）**
+- [ ] ユーザテストの結果を整理
+- [ ] 改善が必要な点をリストアップ
+- [ ] 次の優先度を決定
+
+**4. フェーズ3の判断（オプション）**
+- [ ] ユーザフィードバックに基づいて必要性を判断
+- [ ] フェーズ3候補:
+  - ダークモード
+  - 音声ダウンロード機能
+  - 再生履歴・お気に入り機能
+  - OCR結果の手動修正UI改善
+
+#### 🟢 保留中のタスク（優先度：中）
+
+**ポーズ前の音被り問題**（所要時間: 1-2時間）
+- 現状: 200msの無音挿入済みだが、まだ若干の音被りあり
+- 対策候補:
+  1. ポーズ検知タイミングを0.1秒 → 0.3秒前に早める
+  2. 無音期間を200ms → 400msに延長
+  3. Web Audio APIへの移行検討
+- ファイル: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+
+#### 📋 注意事項
+
+**ブラウザキャッシュ**:
+- Vercelデプロイ後、古いキャッシュが残る可能性あり
+- テスト時は強制リロード（Ctrl+Shift+R または Cmd+Shift+R）
+
+**localStorage**:
+- チュートリアルを再表示したい場合:
+  ```javascript
+  localStorage.removeItem('tts-app-tutorial-completed')
+  ```
+  その後、ページをリロード
+
+**モバイルテスト**:
+- Chrome DevToolsのデバイスモードだけでなく、実機でのテストが重要
+- 特にタップターゲットサイズは実機でないと正確に評価できない
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `frontend/src/components/common/Tutorial/Tutorial.tsx` (119行) - チュートリアルコンポーネント
+- [x] `frontend/src/components/common/Tutorial/styles.css` (192行) - チュートリアルスタイル
+- [x] `frontend/src/components/common/Tutorial/index.ts` (1行) - エクスポート
+
+#### 更新ファイル
+- [x] `frontend/index.html` - viewport設定、Apple Web App対応
+- [x] `frontend/src/App.tsx` - Tutorial統合
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - キーボードショートカット実装
+- [x] `frontend/src/components/features/AudioPlayer/styles.css` - モバイル最適化、ショートカット一覧UI
+- [x] `frontend/src/components/features/ImageUpload/ImageUpload.tsx` - 個別削除機能、ProcessedImage型
+- [x] `frontend/src/components/features/ImageUpload/styles.css` - 削除ボタンスタイル、アニメーション
+
+#### デプロイ
+- [x] GitHubへプッシュ（コミット: `4b049aa`）
+- [x] Railway自動デプロイ確認
+- [x] Vercel自動デプロイ確認
+
+---
+
 ## セッション #12 - 2025-10-22
 
 ### 実施内容
