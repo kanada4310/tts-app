@@ -39,7 +39,9 @@
       "Bash(findstr:*)",
       "Bash(timeout /t 10 /nobreak)",
       "Bash(timeout /t 5 /nobreak)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git log:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

@@ -5,6 +5,269 @@
 
 ---
 
+## セッション #17 - 2025-10-23
+
+### 実施内容
+
+#### 1. リピート機能の根本的バグ修正（重複システムの削除）
+
+**背景**:
+セッション#16でSentenceTriggerManagerを実装したが、リピート機能が不安定（3回設定でも2回しか再生されない、複数の文が同時検出される）。ユーザー提供のコンソールログを分析し、根本原因を特定。
+
+**発見した根本原因**:
+1. **重複リピートシステムの競合**
+   - 旧システム: `handleAudioEnded()`が全音声ファイル終了時に文リピートを処理（lines 541-588）
+   - 新システム: `SentenceTriggerManager`が文末検出で処理
+   - 両システムが同時に動作し、互いに干渉していた
+
+2. **文末検出ウィンドウの設計ミス**
+   - 検出範囲: `progressRatio >= 0.95 && progressRatio <= 1.05` (95%-105%)
+   - `progressRatio > 1.0`は「文の終了時刻を過ぎた」状態
+   - 過去の文（既に終了した文）も`progressRatio > 1.0`のため、複数文が同時検出されていた
+
+3. **初期化処理の不足**
+   - 再生開始時に`processedSentenceEndsRef`がクリアされていなかった
+   - 文0が検出されず、文1から開始される問題
+
+**実施した修正**:
+
+##### 修正1: 重複リピートシステムの完全削除
+
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` (lines 541-588)
+
+**変更内容**:
+```typescript
+// 旧: 47行のリピートロジックを含む handleAudioEnded()
+const handleAudioEnded = () => {
+  // Check if we should repeat the current sentence
+  const newRepeatCount = currentRepeat + 1
+  // repeatCount: 1 (no repeat), 3, 5, -1 (infinite)
+  if (repeatCount === -1 || newRepeatCount < repeatCount) {
+    // Repeat logic...
+  } else {
+    // Move to next sentence or stop...
+  }
+}
+
+// 新: 音声ファイル完全終了時のみ処理
+const handleAudioEnded = () => {
+  // This fires when the ENTIRE audio file ends
+  // The SentenceTriggerManager handles per-sentence logic
+  console.log('[AudioPlayer] Audio file ended')
+  setIsPlaying(false)
+  onPlayStateChange?.(false)
+  onPlaybackComplete?.()
+}
+```
+
+**効果**: リピートロジックがSentenceTriggerManagerに一本化され、競合が解消
+
+##### 修正2: 文末検出ウィンドウの制限
+
+**変更箇所**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` (lines 318-340)
+
+**変更内容**:
+```typescript
+// 旧: 95%-105%のウィンドウ
+if (progressRatio >= 0.95 && progressRatio <= 1.05) {
+  // 過去の文（progressRatio > 1.0）も検出される問題
+}
+
+// 新: 95%-100%のウィンドウ
+if (progressRatio >= 0.95 && progressRatio < 1.0) {
+  // 現在再生中の文のみ検出
+  console.log(`[AudioPlayer] Sentence ${index} ending (${(progressRatio * 100).toFixed(1)}%)`)
+  console.log(`[AudioPlayer] Timing: currentTime=${currentTime.toFixed(3)}s, sentenceStart=${currentSentence.timestamp.toFixed(3)}s, sentenceEnd=${sentenceEndTime.toFixed(3)}s`)
+}
+```
+
+**効果**: 過去の文の誤検出を防止、現在の文のみを確実に検出
+
+##### 修正3: 再生開始時の初期化処理追加
+
+**変更箇所**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` (lines 513-522)
+
+**変更内容**:
+```typescript
+const handlePlay = async () => {
+  // ...existing code...
+
+  try {
+    // If starting from the very beginning, clear all tracking
+    if (audioRef.current.currentTime < 0.1) {
+      console.log('[AudioPlayer] Starting playback from beginning, clearing all tracking')
+      processedSentenceEndsRef.current.clear()
+      if (triggerManagerRef.current) {
+        triggerManagerRef.current.reset(0)
+      }
+      setCurrentSentenceIndex(0)
+      setCurrentRepeat(0)
+    }
+
+    // ...resume logic...
+  }
+}
+```
+
+**効果**: 文0から確実に検出が開始される
+
+---
+
+### 技術的決定事項
+
+#### なぜ重複システムが残っていたか
+
+**経緯**:
+- Session #15: SentenceTriggerManagerを新規実装
+- Session #16: 既存コードとの整合性確認を実施したが、`handleAudioEnded()`の旧ロジックを見落とし
+- Session #17: ユーザー報告のログから両システムの競合を発見
+
+**教訓**:
+- **段階的リファクタリングの落とし穴**: 新システム導入時に旧システムを完全削除しないと、予測不能な競合が発生
+- **今後の対策**: 「新システム導入 = 旧システム完全削除」をセットで実施
+
+#### 検出ウィンドウを95%-100%に制限した理由
+
+**技術的背景**:
+- `progressRatio = (currentTime - sentenceStart) / sentenceDuration`
+- `progressRatio > 1.0` = 文の終了時刻を過ぎた状態
+- `progressRatio <= 1.05`の上限では、文0終了後に文1、文2も同時に検出範囲に入る
+
+**選択理由**:
+- `< 1.0`に制限することで、**現在再生中の文のみ**を検出
+- 過去の文の誤検出を完全防止
+- 5%のマージン（95%-100%）で見逃しリスクを最小化
+
+**代替案と比較**:
+| 案 | ウィンドウ | 利点 | 欠点 | 採用 |
+|----|----------|------|------|------|
+| 案1 | 95%-105% | 広くて見逃しにくい | 過去の文も検出 | ❌ |
+| 案2 | 95%-100% | 現在の文のみ検出 | バランスが良い | ✅ |
+| 案3 | 97%-99% | 最も正確 | 見逃しリスク高 | ❌ |
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: 複数の文が同時に検出される
+
+**症状**:
+```
+[AudioPlayer] Sentence 1 ending (96.3%), calling trigger manager...
+[AudioPlayer] Sentence 2 ending (95.5%), calling trigger manager...
+[AudioPlayer] Sentence 4 ending (97.2%), calling trigger manager...
+```
+非連続的な文番号（1, 2, 4, 7, 11, 12など）が一度に検出
+
+**原因**:
+- `progressRatio <= 1.05`により、文終了後0.05秒間は検出範囲に残る
+- 文0終了後、文1, 2, 3も同時に`progressRatio > 1.0`の状態
+- `processedSentenceEndsRef`は単一タイムアップデートイベント内での重複は防げない
+
+**解決方法**:
+- `progressRatio < 1.0`に変更
+- 現在再生中の文のみを検出
+
+**所要時間**: 20分（原因特定15分、修正5分）
+
+#### 問題2: 文0が検出されない
+
+**症状**:
+常に文1または文2から検出が始まり、文0がスキップされる
+
+**原因**:
+- `handlePlay()`時に`processedSentenceEndsRef`がクリアされていなかった
+- 前回の再生で文0が処理済みとマークされたまま残っていた
+
+**解決方法**:
+```typescript
+if (audioRef.current.currentTime < 0.1) {
+  processedSentenceEndsRef.current.clear()
+  triggerManagerRef.current.reset(0)
+  setCurrentSentenceIndex(0)
+}
+```
+
+**所要時間**: 10分
+
+#### 問題3: リピートが2回で止まる
+
+**症状**:
+3回設定でも「Repeating sentence X: 2/3」までしか表示されない
+
+**原因**:
+重複リピートシステムが干渉し、`handleAudioEnded()`が予期しないタイミングで実行されていた
+
+**解決方法**:
+`handleAudioEnded()`の旧リピートロジック（47行）を完全削除
+
+**所要時間**: 15分（根本原因の特定に時間がかかった）
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### すぐに着手すべきこと
+
+1. **動作確認（最重要）**
+   - ブラウザキャッシュをクリア（Ctrl+Shift+R）
+   - 文0から再生が開始されるか確認
+   - リピート3回が正しく動作するか確認（1/3, 2/3, 3/3の表示）
+   - 複数文の同時検出がないか確認
+
+2. **期待されるコンソールログ**:
+```
+[AudioPlayer] Starting playback from beginning, clearing all tracking
+[AudioPlayer] Sentence 0 ending (95.x%), calling trigger manager...
+[AudioPlayer] Timing: currentTime=X.XXXs, sentenceStart=0.000s, sentenceEnd=X.XXXs
+[AudioPlayer] Action decided: Repeating sentence 0: 1/3 (1s pause)
+[AudioPlayer] Paused for 1s, cleared all processed flags
+[AudioPlayer] Seeked to sentence 0 at 0.000s (grace period: 300ms)
+[AudioPlayer] Auto-resumed after 1s
+[AudioPlayer] Sentence 0 ending (95.x%), calling trigger manager...
+[AudioPlayer] Action decided: Repeating sentence 0: 2/3 (1s pause)
+... (繰り返し)
+[AudioPlayer] Sentence 0 ending (95.x%), calling trigger manager...
+[AudioPlayer] Action decided: Advancing to sentence 1
+```
+
+3. **デプロイ（動作確認後）**
+   - ローカル環境で完全動作確認後
+   - Gitコミット・プッシュ
+   - Vercel自動デプロイ確認
+
+#### 注意事項
+
+- **必ずブラウザキャッシュクリア**: Hot Module Replacement (HMR)で更新されない可能性
+- **複数ファイル変更**: AudioPlayer.tsx（主要）、App.tsx（軽微）、SentenceList.tsx（警告修正）
+- **TypeScriptコンパイル**: 既に確認済み、エラーなし
+
+#### 📋 次回セッションで参照すべきファイル
+
+**動作確認後、追加機能を実装する場合**:
+- `docs/sessions/TODO.md` - 学習効果向上フェーズ3A（文間ポーズ機能など）
+- `frontend/src/utils/sentenceTriggerManager.ts` - トリガーマネージャー仕様
+
+**デプロイする場合**:
+- `docs/DEPLOYMENT.md` - デプロイ手順
+- `docs/DEPLOYMENT_CHECKLIST.md` - チェックリスト
+
+---
+
+### 成果物リスト
+
+#### 更新ファイル
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - 重複システム削除、検出ウィンドウ修正、初期化処理追加（3箇所修正）
+- [x] `frontend/src/App.tsx` - audioRef削除、handleSentenceSeek簡略化
+- [x] `frontend/src/components/features/SentenceList/SentenceList.tsx` - 未使用変数削除
+
+#### Git commit（次回セッション、動作確認後に実施）
+- [ ] リピート機能バグ修正をコミット
+- [ ] デプロイ（Vercel自動）
+- [ ] HANDOVER.md、TODO.md、SUMMARY.md更新
+
+---
+
 ## セッション #16 - 2025-10-22
 
 ### 実施内容

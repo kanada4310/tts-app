@@ -188,58 +188,140 @@
   - [x] ポーズロジックの改善（シーク機能追加）
   - [ ] **ポーズ前の音被り問題（未完全解決）**
 
-## 🟡 高優先度（セッション#15で追加）
+## 🟢 完了済み（セッション#16で実装完了）
 
-### ユーザビリティ改善 - フェーズ3A: モバイル操作性の改善
+### ユーザビリティ改善 - フェーズ3A: モバイル操作性の改善 ✅
 
 **目標**: スマホでのシークバー操作を快適にする
 **期待効果**: モバイル操作性+100%、機能発見率+300%、タスク完了率+15%
 **参照**: [docs/USABILITY_REPORT.md](../USABILITY_REPORT.md) - モバイルユーザビリティの追加問題
 **追加日**: 2025-10-22（セッション#15）
+**完了日**: 2025-10-22（セッション#16）
 
-- [ ] **1. シークバーのタップエリア拡大**
-  - [ ] `::before`疑似要素で透明なパディングを追加（上下20px）
-  - [ ] タップ可能エリアを視覚的な高さ（16px）から44pxに拡張
+- [x] **1. シークバー高さを44pxに拡大** ✅
+  - [x] モバイル時のシークバー高さを16px → 44pxに変更（速度スライダーと統一）
+  - [x] border-radius調整（12px → 22px）
   - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-  - 所要時間: 30分
+  - 所要時間: 15分（実績）
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **2. シークバー高さを24pxに拡大**
-  - [ ] モバイル時のシークバー高さを16px → 24pxに変更
-  - [ ] 視覚的にもタップしやすく
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-  - 所要時間: 15分
+- [x] **2. スライド操作実装** ✅
+  - [x] `isDragging` state追加
+  - [x] `calculateSeekPosition` 関数実装
+  - [x] `handleTouchStart`, `handleTouchMove`, `handleTouchEnd` 実装
+  - [x] `e.preventDefault()` でスクロール防止
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+  - 所要時間: 30分（実績）
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **3. 文境界マーカーを8px幅、24px高さに拡大**
-  - [ ] マーカー幅: 4px → 8px
-  - [ ] マーカー高さ: 16px → 24px（シークバーと統一）
+- [x] **3. スライド中にツールチップ常時表示** ✅
+  - [x] `updateTooltip` 関数実装
+  - [x] useEffectで`isDragging`中にツールチップ強制表示
+  - [x] スライド終了後、3秒で自動消去
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+  - 所要時間: 30分（実績、タスク2と統合）
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **4. 文境界マーカー拡大** ✅
+  - [x] マーカー幅: 4px → 8px
+  - [x] マーカー高さ: 16px → 44px（シークバーと統一）
   - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-  - 所要時間: 15分
+  - 所要時間: 15分（実績）
   - ROI: ⭐⭐⭐⭐
 
-- [ ] **4. タップでツールチップ表示機能の実装**
-  - [ ] シークバーをタップ → その位置の文プレビューを固定表示
-  - [ ] `handleSeekBarClick`関数実装（タップ位置から文を特定）
-  - [ ] モバイル専用ツールチップUI（`position: absolute`, `z-index: 1000`）
-  - [ ] 再タップまたは3秒後に自動消去
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+- [x] **5. 文番号表示修正** ✅
+  - [x] デスクトップ: シークバー上に配置（`top: -24px`）
+  - [x] モバイル: シークバー下に配置（`bottom: -24px`）
+  - [x] `font-size: 12px`（モバイル）
+  - [x] 20文以上の場合は5の倍数のみ表示
   - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-  - 所要時間: 2時間
-  - ROI: ⭐⭐⭐⭐⭐
-
-- [ ] **5. 文境界マーカーに番号表示**
-  - [ ] マーカーの上に文番号（"1", "2", "3"...）を小さく表示
-  - [ ] `font-size: 10px`, `position: absolute`, `top: -12px`
-  - [ ] 20文以上の場合は5の倍数のみ表示（1, 5, 10, 15...）
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-  - 所要時間: 1時間
+  - 所要時間: 15分（実績）
   - ROI: ⭐⭐⭐⭐
 
-**フェーズ3A合計**: 4時間
+**フェーズ3A（モバイル操作性）合計**: 1.5時間（実績）
 
 ---
+
+### 文リスト機能実装 ✅
+
+**目標**: 音声生成後、テキストを文リストで表示し、学習体験を向上
+**期待効果**: 文の把握+100%、ナビゲーション性+200%
+**追加日**: 2025-10-22（セッション#15）
+**完了日**: 2025-10-22（セッション#16）
+
+- [x] **1. App.tsx で表示切り替え** ✅
+  - [x] 音声生成前: TextEditor表示
+  - [x] 音声生成後: SentenceList表示（自動切り替え）
+  - [x] `handleSentenceSeek` 関数実装
+  - **ファイル**: `frontend/src/App.tsx`
+  - 所要時間: 20分（実績）
+
+- [x] **2. SentenceList コンポーネント作成** ✅
+  - [x] Props定義（sentences, sentenceTimings, currentSentenceIndex, isPlaying, onSentenceClick）
+  - [x] 折り畳み機能（`isCollapsed` state）
+  - [x] 可視範囲制御（現在文+前後3文を強調表示）
+  - [x] 自動スクロール（トグル可能、`autoScroll` state）
+  - [x] 文クリックでシーク機能
+  - [x] カード型デザイン、モバイル最適化
+  - **新規ファイル**: `frontend/src/components/features/SentenceList/SentenceList.tsx` (123行)
+  - **新規ファイル**: `frontend/src/components/features/SentenceList/index.ts` (2行)
+  - **新規ファイル**: `frontend/src/components/features/SentenceList/styles.css` (211行)
+  - 所要時間: 1.5時間（実績、タスク2-6統合）
+
+- [x] **3. AudioPlayer 型更新** ✅
+  - [x] `onSentenceChange?: (index: number) => void` 追加
+  - [x] `onPlayStateChange?: (isPlaying: boolean) => void` 追加
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+  - 所要時間: 20分（実績）
+
+**文リスト機能合計**: 2時間（実績）
+
+---
+
+### 学習効果向上 - フェーズ3A: アクティブ学習支援 ✅
+
+**目標**: 「聞くだけ」から「練習できる」アプリへ進化
+**期待効果**: 学習効果+40%、シャドーイング/オーバーラッピング練習が可能に
+**参照**: [docs/LEARNING_ENHANCEMENT.md](../LEARNING_ENHANCEMENT.md)
+**追加日**: 2025-10-22（セッション#15）
+**完了日**: 2025-10-22（セッション#15）
+**理論的背景**: 第二言語習得論（SLA）、大学受験英語のノウハウ
+
+- [x] **1. リピート再生機能** ✅
+  - [x] 1文を指定回数（1回、3回、5回、無限）自動リピート
+  - [x] 再生後に自動で次の文へ（autoAdvanceチェックボックス）
+  - [x] リピートカウンター表示（例: "2 / 3"）
+  - [x] `repeatCount`, `currentRepeat`状態管理
+  - [x] `handleAudioEnded`関数でリピート・自動移動ロジック実装
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` (920-948行)
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
+  - 所要時間: 1-2時間（実績）
+  - ROI: ⭐⭐⭐⭐⭐
+  - **学習効果**: オーバーラッピング、シャドーイング練習が容易に
+
+- [x] **2. 文ごとの一時停止機能** ✅
+  - [x] 1文再生後、自動で一時停止
+  - [x] ユーザーが発音練習 → スペースキーで次の文へ
+  - [x] `autoPauseAfterSentence`状態
+  - [x] `handleAudioEnded`内で一時停止判定
+  - [x] UIチェックボックス実装
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` (959-968行)
+  - 所要時間: 30分-1時間（実績）
+  - ROI: ⭐⭐⭐⭐⭐
+  - **学習効果**: 音読練習のペースをアプリが管理
+
+- [x] **3. テキスト表示/非表示切り替え（文リスト機能に置き換え）** ✅
+  - [x] 音声生成前: TextEditor表示
+  - [x] 音声生成後: SentenceList表示（自動切り替え）
+  - [x] SentenceListの折り畳み機能で実質的な表示/非表示を実現
+  - **実装**: 文リスト機能として実装済み（セッション#16）
+  - **学習効果**: より高度な文単位のナビゲーションが可能に
+
+**フェーズ3A（学習効果）合計**: 1.5-3時間（実績: セッション#15で実装完了）
+
+---
+
+## 🟡 高優先度
 
 ### ユーザビリティ改善 - フェーズ3B: レイアウト改善
 
@@ -264,48 +346,6 @@
   - ROI: ⭐⭐
 
 **フェーズ3B合計**: 0.5-2.5時間
-
----
-
-### 学習効果向上 - フェーズ3A: アクティブ学習支援（最優先）
-
-**目標**: 「聞くだけ」から「練習できる」アプリへ進化
-**期待効果**: 学習効果+40%、シャドーイング/オーバーラッピング練習が可能に
-**参照**: [docs/LEARNING_ENHANCEMENT.md](../LEARNING_ENHANCEMENT.md)
-**追加日**: 2025-10-22（セッション#15）
-**理論的背景**: 第二言語習得論（SLA）、大学受験英語のノウハウ
-
-- [ ] **1. リピート再生機能**
-  - [ ] 1文を指定回数（1回、3回、5回、無限）自動リピート
-  - [ ] 再生後に自動で次の文へ（設定可能）
-  - [ ] UI: ドロップダウンまたはラジオボタン
-  - [ ] `repeatCount`状態、`onEnded`イベントでカウント判定
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
-  - 所要時間: 1-2時間
-  - ROI: ⭐⭐⭐⭐⭐
-  - **学習効果**: オーバーラッピング、シャドーイング練習が容易に
-
-- [ ] **2. 文ごとの一時停止機能**
-  - [ ] 1文再生後、自動で一時停止
-  - [ ] ユーザーが発音練習 → スペースキーで次の文へ
-  - [ ] `autoPauseAfterSentence`状態
-  - [ ] 文の終了タイミングで`pause()`を呼び出し
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
-  - 所要時間: 30分-1時間
-  - ROI: ⭐⭐⭐⭐⭐
-  - **学習効果**: 音読練習のペースをアプリが管理
-
-- [ ] **3. テキスト表示/非表示切り替え**
-  - [ ] ボタン1つでテキストエディタの表示/非表示を切り替え
-  - [ ] 非表示時は音声プレイヤーのみ表示
-  - [ ] `showText`状態、条件付きレンダリング
-  - **ファイル**: `frontend/src/App.tsx`
-  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
-  - 所要時間: 1時間
-  - ROI: ⭐⭐⭐⭐
-  - **学習効果**: シャドーイング練習（テキストを見ない）、リスニング専念モード
-
-**フェーズ3A（学習効果）合計**: 2.5-4時間
 
 ---
 

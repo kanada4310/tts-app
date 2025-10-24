@@ -22,7 +22,6 @@ export interface SentenceListProps {
 
 export const SentenceList: React.FC<SentenceListProps> = ({
   sentences,
-  sentenceTimings,
   currentSentenceIndex,
   isPlaying,
   onSentenceClick,

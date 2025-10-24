@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
@@ -20,8 +20,6 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-
-  const audioRef = useRef<HTMLAudioElement>(null)
 
   const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
     setOcrText(result.text)
@@ -78,16 +76,9 @@ function App() {
     setError(errorMessage)
   }
 
-  const handleSentenceSeek = (index: number) => {
-    if (audioRef.current && sentenceTimings[index]) {
-      audioRef.current.currentTime = sentenceTimings[index].timestamp
-      setCurrentSentenceIndex(index)
-
-      if (!isPlaying) {
-        audioRef.current.play()
-        setIsPlaying(true)
-      }
-    }
+  // Callback function for sentence seek - will be called by SentenceList
+  const handleSentenceSeekRequest = (index: number) => {
+    setCurrentSentenceIndex(index)
   }
 
   return (
@@ -135,7 +126,7 @@ function App() {
               sourceText={ocrText}
               sourceSentences={ocrSentences}
               sentenceTimings={sentenceTimings}
-              audioRef={audioRef}
+              externalSentenceIndex={currentSentenceIndex}
               onSentenceChange={setCurrentSentenceIndex}
               onPlayStateChange={setIsPlaying}
             />
@@ -150,7 +141,7 @@ function App() {
               sentenceTimings={sentenceTimings}
               currentSentenceIndex={currentSentenceIndex}
               isPlaying={isPlaying}
-              onSentenceClick={handleSentenceSeek}
+              onSentenceClick={handleSentenceSeekRequest}
             />
           </section>
         )}

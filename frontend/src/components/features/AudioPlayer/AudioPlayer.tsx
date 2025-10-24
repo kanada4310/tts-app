@@ -13,6 +13,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { AUDIO_CONFIG, PAUSE_CONFIG } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
 import { detectSentences, extractFirstWords, estimateTimestamp } from '@/utils/textAnalysis'
+import { SentenceTriggerManager, TriggerConfig, TriggerAction } from '@/utils/sentenceTriggerManager'
 import type { SentenceBoundary, PauseConfig } from '@/types/audio'
 import type { SentenceTiming } from '@/types/api'
 import './styles.css'
@@ -22,7 +23,7 @@ export interface AudioPlayerProps {
   sourceText?: string // The original OCR text for fallback
   sourceSentences?: string[] // Pre-parsed sentences from backend
   sentenceTimings?: SentenceTiming[] // Precise timings from TTS
-  audioRef?: React.RefObject<HTMLAudioElement> // External audio ref from App.tsx
+  externalSentenceIndex?: number // External sentence index from SentenceList clicks
   onPlaybackComplete?: () => void
   onSentenceChange?: (index: number) => void // Callback when sentence changes
   onPlayStateChange?: (isPlaying: boolean) => void // Callback when play state changes
@@ -33,7 +34,7 @@ export function AudioPlayer({
   sourceText,
   sourceSentences,
   sentenceTimings,
-  audioRef: externalAudioRef,
+  externalSentenceIndex,
   onPlaybackComplete,
   onSentenceChange,
   onPlayStateChange
@@ -68,8 +69,19 @@ export function AudioPlayer({
   const intervalRef = useRef<number | null>(null)
   const pauseTimeoutRef = useRef<number | null>(null)
   const progressBarRef = useRef<HTMLDivElement | null>(null)
-  const lastPausedSentenceRef = useRef<number>(-1) // Track which sentence we last paused at
   const [showShortcuts, setShowShortcuts] = useState(false)
+
+  // Centralized trigger manager
+  const triggerManagerRef = useRef<SentenceTriggerManager | null>(null)
+
+  // Track which sentence endings we've already processed
+  const processedSentenceEndsRef = useRef<Set<number>>(new Set())
+
+  // Track when we last seeked (to prevent detection immediately after seek)
+  const lastSeekTimeRef = useRef<number>(0)
+
+  // Track if we're currently processing an action (to prevent multiple simultaneous triggers)
+  const isProcessingActionRef = useRef<boolean>(false)
 
   // Parse sentences from backend or fallback to client-side detection
   const sentences: SentenceBoundary[] = useMemo(() => {
@@ -180,6 +192,25 @@ export function AudioPlayer({
     }
   }, [isPlaying, speed, showShortcuts])
 
+  // Initialize trigger manager when config changes
+  useEffect(() => {
+    const config: TriggerConfig = {
+      repeatCount,
+      // pauseAfterSentence: true if either pause feature is enabled
+      pauseAfterSentence: pauseConfig.enabled || autoPauseAfterSentence,
+      // autoResume: true only if "pause between sentences" is enabled (not manual pause)
+      autoResume: pauseConfig.enabled,
+      pauseDuration: pauseConfig.duration,
+      autoAdvance
+    }
+
+    if (!triggerManagerRef.current) {
+      triggerManagerRef.current = new SentenceTriggerManager(config)
+    } else {
+      triggerManagerRef.current.updateConfig(config)
+    }
+  }, [repeatCount, autoPauseAfterSentence, pauseConfig.enabled, pauseConfig.duration, autoAdvance])
+
   // Load audio when URL changes
   useEffect(() => {
     if (!audioUrl) {
@@ -208,9 +239,41 @@ export function AudioPlayer({
     }
   }, [isDragging])
 
-  // Track current sentence and trigger pause on sentence change
+  // Handle external sentence index changes (from SentenceList clicks)
   useEffect(() => {
-    if (sentences.length === 0 || !audioRef.current) return
+    if (externalSentenceIndex !== undefined &&
+        externalSentenceIndex !== currentSentenceIndex &&
+        audioRef.current &&
+        sentences.length > 0 &&
+        externalSentenceIndex >= 0 &&
+        externalSentenceIndex < sentences.length) {
+
+      const targetSentence = sentences[externalSentenceIndex]
+      console.log(`[AudioPlayer] Seeking to sentence ${externalSentenceIndex} at ${targetSentence.timestamp}s`)
+
+      // Seek to the sentence
+      audioRef.current.currentTime = targetSentence.timestamp
+      setCurrentSentenceIndex(externalSentenceIndex)
+      setCurrentRepeat(0) // Reset repeat count
+
+      // Reset trigger manager and clear tracking
+      if (triggerManagerRef.current) {
+        triggerManagerRef.current.reset(externalSentenceIndex)
+      }
+      processedSentenceEndsRef.current.clear()
+
+      // Start playing if not already playing
+      if (!isPlaying) {
+        audioRef.current.play()
+        setIsPlaying(true)
+        onPlayStateChange?.(true)
+      }
+    }
+  }, [externalSentenceIndex, sentences])
+
+  // Track current sentence and detect sentence end
+  useEffect(() => {
+    if (sentences.length === 0 || !audioRef.current || !triggerManagerRef.current) return
 
     // Find current sentence index based on playback time
     const index = sentences.findIndex((sentence, i) => {
@@ -221,91 +284,148 @@ export function AudioPlayer({
 
     // Update current sentence index
     if (index !== -1 && index !== currentSentenceIndex) {
-      const previousIndex = currentSentenceIndex
       setCurrentSentenceIndex(index)
       onSentenceChange?.(index)
-
-      // Trigger pause when moving to a new sentence (not on initial load)
-      if (pauseConfig.enabled &&
-          isPlaying &&
-          !isPauseBetweenSentences &&
-          previousIndex !== -1 &&
-          index > previousIndex &&
-          index !== lastPausedSentenceRef.current) {
-
-        // Pause the audio
-        audioRef.current.pause()
-        setIsPlaying(false)
-        setIsPauseBetweenSentences(true)
-        lastPausedSentenceRef.current = index
-
-        // Resume after pause duration
-        pauseTimeoutRef.current = window.setTimeout(() => {
-          if (audioRef.current) {
-            audioRef.current.play()
-            setIsPlaying(true)
-            setIsPauseBetweenSentences(false)
-          }
-        }, pauseConfig.duration * 1000)
-      }
     }
 
-    // Early pause detection: check if we're approaching the end of current sentence
-    if (pauseConfig.enabled &&
-        isPlaying &&
-        !isPauseBetweenSentences &&
-        index !== -1 &&
-        index !== lastPausedSentenceRef.current &&
-        !pauseTimeoutRef.current) { // Only trigger if no pause is already scheduled
-
+    // Detect sentence END (only when playing and not in pause state)
+    // IMPORTANT: Also check that we're not pending a pause timeout
+    // AND that enough time has passed since last seek (300ms grace period)
+    // AND that we're not already processing another action
+    const timeSinceLastSeek = Date.now() - lastSeekTimeRef.current
+    if (isPlaying && index !== -1 && !isPauseBetweenSentences && !pauseTimeoutRef.current && timeSinceLastSeek > 300 && !isProcessingActionRef.current) {
+      const currentSentence = sentences[index]
       const nextSentence = sentences[index + 1]
 
+      // Calculate sentence end time
+      let sentenceEndTime: number
       if (nextSentence) {
-        // Calculate when current sentence ends (which is when next sentence starts)
-        const currentSentenceEnd = nextSentence.timestamp
-        const timeUntilEnd = currentSentenceEnd - currentTime
+        sentenceEndTime = nextSentence.timestamp
+      } else {
+        // Last sentence: use timestamp + duration (or estimate)
+        const timing = sentenceTimings?.find((_, i) => i === index)
+        sentenceEndTime = timing
+          ? currentSentence.timestamp + timing.duration
+          : currentSentence.timestamp + 3.0 // Fallback: 3 seconds
+      }
 
-        // Pause 0.1 seconds before the current sentence ends
-        // This prevents the next sentence from starting while we pause
-        if (timeUntilEnd > 0 && timeUntilEnd <= 0.1) {
-          console.log(`[AudioPlayer] Pausing before sentence ${index + 1}: currentTime=${currentTime.toFixed(3)}s, nextTimestamp=${nextSentence.timestamp.toFixed(3)}s, timeUntilEnd=${timeUntilEnd.toFixed(3)}s`)
+      // Detect when we're near the end (progress >= 95%)
+      // This is more reliable than time-based detection (0.1s window)
+      const sentenceDuration = sentenceEndTime - currentSentence.timestamp
+      const progressIntoSentence = currentTime - currentSentence.timestamp
+      const progressRatio = progressIntoSentence / sentenceDuration
 
-          // Mark the pause state FIRST to prevent any other operations
-          setIsPauseBetweenSentences(true)
-          lastPausedSentenceRef.current = index // Mark current sentence as paused
+      // Detection window: 95% - 100% (NOT beyond 100%)
+      // Only detect if we're in the current sentence's time range
+      if (progressRatio >= 0.95 && progressRatio < 1.0) {
+        // Check if we've already processed this sentence end
+        if (!processedSentenceEndsRef.current.has(index)) {
+          processedSentenceEndsRef.current.add(index)
 
-          // Pause the audio
-          audioRef.current.pause()
-          setIsPlaying(false)
+          // Mark as processing to block other simultaneous triggers
+          isProcessingActionRef.current = true
 
-          // Seek to the next sentence's start position to skip any remaining audio
-          // Use setTimeout to ensure pause state is set before seeking
-          setTimeout(() => {
-            if (audioRef.current) {
-              audioRef.current.currentTime = nextSentence.timestamp
-              console.log(`[AudioPlayer] Seeked to ${nextSentence.timestamp.toFixed(3)}s (start of sentence ${index + 1})`)
-            }
-          }, 10)
+          console.log(`[AudioPlayer] Sentence ${index} ending (${(progressRatio * 100).toFixed(1)}%), calling trigger manager...`)
+          console.log(`[AudioPlayer] Timing: currentTime=${currentTime.toFixed(3)}s, sentenceStart=${currentSentence.timestamp.toFixed(3)}s, sentenceEnd=${sentenceEndTime.toFixed(3)}s`)
 
-          // Resume after pause duration
-          pauseTimeoutRef.current = window.setTimeout(() => {
-            if (audioRef.current) {
-              console.log(`[AudioPlayer] Resuming after ${pauseConfig.duration}s pause at ${audioRef.current.currentTime.toFixed(3)}s`)
-              audioRef.current.play().then(() => {
-                setIsPlaying(true)
-                setIsPauseBetweenSentences(false)
-                pauseTimeoutRef.current = null // Clear the timeout reference
-              }).catch(err => {
-                console.error('[AudioPlayer] Failed to resume playback:', err)
-                setIsPauseBetweenSentences(false)
-                pauseTimeoutRef.current = null
-              })
-            }
-          }, pauseConfig.duration * 1000)
+          const action = triggerManagerRef.current.handleSentenceEnd({
+            sentenceIndex: index,
+            totalSentences: sentences.length
+          })
+
+          console.log(`[AudioPlayer] Action decided: ${action.debugMessage}`)
+          executeAction(action)
         }
       }
     }
-  }, [currentTime, sentences, currentSentenceIndex, pauseConfig, isPlaying, isPauseBetweenSentences])
+  }, [currentTime, sentences, currentSentenceIndex, isPlaying, isPauseBetweenSentences, sentenceTimings, onSentenceChange])
+
+  // Execute trigger action (redesigned)
+  const executeAction = (action: TriggerAction) => {
+    if (!audioRef.current) return
+
+    // Update repeat info display
+    if (action.repeatInfo) {
+      setCurrentRepeat(action.repeatInfo.current - 1) // Convert to 0-based for display
+    } else {
+      setCurrentRepeat(0)
+    }
+
+    // Handle COMPLETE action (stop playback)
+    if (action.type === 'COMPLETE') {
+      audioRef.current.pause()
+      setIsPlaying(false)
+      onPlayStateChange?.(false)
+      onPlaybackComplete?.()
+      return
+    }
+
+    // Handle REPEAT or ADVANCE actions
+    // Step 1: Pause immediately (if pauseDuration > 0 or -1)
+    if (action.pauseDuration !== 0) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+      onPlayStateChange?.(false)
+      setIsPauseBetweenSentences(true)
+
+      // CRITICAL: Clear all processed flags immediately when pausing
+      // This prevents other sentences in the 0.1s window from triggering during the pause
+      processedSentenceEndsRef.current.clear()
+
+      console.log(`[AudioPlayer] Paused for ${action.pauseDuration === -1 ? 'manual resume' : (action.pauseDuration / 1000) + 's'}, cleared all processed flags`)
+    }
+
+    // Step 2: Execute seek (for both REPEAT and ADVANCE)
+    const executeSeek = () => {
+      if (action.seekTo !== null && sentences.length > 0 && action.seekTo < sentences.length) {
+        audioRef.current!.currentTime = sentences[action.seekTo].timestamp
+        setCurrentSentenceIndex(action.seekTo)
+
+        // Record seek time to prevent immediate detection
+        lastSeekTimeRef.current = Date.now()
+
+        console.log(`[AudioPlayer] Seeked to sentence ${action.seekTo} at ${sentences[action.seekTo].timestamp}s (grace period: 300ms)`)
+      }
+    }
+
+    // Step 3: Schedule resume (or wait for manual resume)
+    if (action.pauseDuration > 0) {
+      // Auto-resume after specified duration
+      pauseTimeoutRef.current = window.setTimeout(() => {
+        executeSeek()
+
+        if (audioRef.current) {
+          audioRef.current.play().then(() => {
+            setIsPlaying(true)
+            onPlayStateChange?.(true)
+            setIsPauseBetweenSentences(false)
+            pauseTimeoutRef.current = null
+
+            // Processing complete, allow new triggers
+            isProcessingActionRef.current = false
+
+            console.log(`[AudioPlayer] Auto-resumed after ${action.pauseDuration / 1000}s`)
+          }).catch(err => {
+            console.error('[AudioPlayer] Failed to resume playback:', err)
+            setIsPauseBetweenSentences(false)
+            pauseTimeoutRef.current = null
+            isProcessingActionRef.current = false
+          })
+        }
+      }, action.pauseDuration)
+    } else if (action.pauseDuration === -1) {
+      // Manual resume (wait for user to press space)
+      executeSeek()
+      console.log(`[AudioPlayer] Waiting for manual resume (press space)`)
+      // Don't clear isProcessingActionRef yet - wait for user to resume
+    } else {
+      // No pause (pauseDuration === 0)
+      executeSeek()
+
+      // Processing complete immediately since there's no pause
+      isProcessingActionRef.current = false
+    }
+  }
 
   const loadAudio = (url: string) => {
     setIsLoading(true)
@@ -375,7 +495,12 @@ export function AudioPlayer({
     setCurrentTime(0)
     setDuration(0)
     setIsPauseBetweenSentences(false)
-    lastPausedSentenceRef.current = -1
+
+    // Reset trigger manager and clear tracking
+    if (triggerManagerRef.current) {
+      triggerManagerRef.current.reset()
+    }
+    processedSentenceEndsRef.current.clear()
   }
 
   const handlePlay = async () => {
@@ -388,11 +513,25 @@ export function AudioPlayer({
     }
 
     try {
+      // If starting from the very beginning, clear all tracking
+      if (audioRef.current.currentTime < 0.1) {
+        console.log('[AudioPlayer] Starting playback from beginning, clearing all tracking')
+        processedSentenceEndsRef.current.clear()
+        if (triggerManagerRef.current) {
+          triggerManagerRef.current.reset(0)
+        }
+        setCurrentSentenceIndex(0)
+        setCurrentRepeat(0)
+      }
+
       audioRef.current.playbackRate = speed
       await audioRef.current.play()
       setIsPlaying(true)
       onPlayStateChange?.(true)
       setIsPauseBetweenSentences(false)
+
+      // If resuming from manual pause, allow new triggers
+      isProcessingActionRef.current = false
     } catch (error) {
       console.error('Error playing audio:', error)
     }
@@ -414,52 +553,13 @@ export function AudioPlayer({
   }
 
   const handleAudioEnded = () => {
-    // Check if we should repeat the current sentence
-    const newRepeatCount = currentRepeat + 1
-
-    // repeatCount: 1 (no repeat), 3, 5, -1 (infinite)
-    if (repeatCount === -1 || newRepeatCount < repeatCount) {
-      // Repeat: restart from the current sentence
-      setCurrentRepeat(newRepeatCount)
-      if (audioRef.current && sentences.length > 0) {
-        const currentSentence = sentences[currentSentenceIndex]
-        audioRef.current.currentTime = currentSentence.timestamp
-
-        // If auto-pause is enabled, pause instead of playing
-        if (autoPauseAfterSentence) {
-          setIsPlaying(false)
-        } else {
-          audioRef.current.play()
-          setIsPlaying(true)
-        }
-      }
-    } else {
-      // Move to next sentence or stop
-      setCurrentRepeat(0)
-
-      if (autoAdvance && currentSentenceIndex < sentences.length - 1) {
-        // Move to next sentence
-        const nextIndex = currentSentenceIndex + 1
-        setCurrentSentenceIndex(nextIndex)
-
-        if (audioRef.current && sentences.length > 0) {
-          const nextSentence = sentences[nextIndex]
-          audioRef.current.currentTime = nextSentence.timestamp
-
-          // If auto-pause is enabled, pause instead of playing
-          if (autoPauseAfterSentence) {
-            setIsPlaying(false)
-          } else {
-            audioRef.current.play()
-            setIsPlaying(true)
-          }
-        }
-      } else {
-        // End of all sentences or auto-advance disabled
-        handleStop()
-        onPlaybackComplete?.()
-      }
-    }
+    // This fires when the ENTIRE audio file ends
+    // The SentenceTriggerManager handles per-sentence logic
+    // We only need to handle the case where audio truly ends (e.g., user seeks to the very end)
+    console.log('[AudioPlayer] Audio file ended')
+    setIsPlaying(false)
+    onPlayStateChange?.(false)
+    onPlaybackComplete?.()
   }
 
   const handleStop = () => {
@@ -478,7 +578,12 @@ export function AudioPlayer({
     setCurrentSentenceIndex(0)
     setCurrentRepeat(0)
     setIsPauseBetweenSentences(false)
-    lastPausedSentenceRef.current = -1
+
+    // Reset trigger manager and clear tracking
+    if (triggerManagerRef.current) {
+      triggerManagerRef.current.reset(0)
+    }
+    processedSentenceEndsRef.current.clear()
   }
 
   const handleSpeedChange = (newSpeed: number) => {
@@ -827,7 +932,6 @@ export function AudioPlayer({
               {/* Sentence boundary markers */}
               {sentences.map((sentence, index) => {
                 const position = (sentence.timestamp / duration) * 100
-                const shouldShowNumber = sentences.length < 20 || (index + 1) % 5 === 0 || index === 0
                 return (
                   <div
                     key={index}
@@ -835,9 +939,7 @@ export function AudioPlayer({
                     style={{ left: `${position}%` }}
                     title={sentence.preview}
                   >
-                    {shouldShowNumber && (
-                      <span className="sentence-marker-number">{index + 1}</span>
-                    )}
+                    <span className="sentence-marker-number">{index + 1}</span>
                   </div>
                 )
               })}
