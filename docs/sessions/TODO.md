@@ -1,6 +1,6 @@
 # TODO
 
-最終更新: 2025-10-22（セッション#14: ドキュメント整合性修正）
+最終更新: 2025-10-23（セッション#17: 音声分割方式基盤実装+リファクタリング計画）
 
 ## 🟢 完了済み（セッション#13で実装完了）
 
@@ -318,6 +318,227 @@
   - **学習効果**: より高度な文単位のナビゲーションが可能に
 
 **フェーズ3A（学習効果）合計**: 1.5-3時間（実績: セッション#15で実装完了）
+
+---
+
+## 🟢 完了済み（セッション#17で実装完了）
+
+### リピート機能バグ修正 ✅ 完了
+
+**完了日**: 2025-10-23（セッション#17前半）
+
+- [x] **重複リピートシステムの完全削除** ✅
+  - [x] 旧handleAudioEnded()のリピートロジック（47行）を削除
+  - [x] SentenceTriggerManagerに一本化
+  - 所要時間: 15分（実績）
+
+- [x] **文末検出ウィンドウの修正** ✅
+  - [x] 検出範囲を95%-105% → 95%-100%に変更
+  - [x] 過去の文の誤検出を防止
+  - 所要時間: 5分（実績）
+
+- [x] **再生開始時の初期化処理追加** ✅
+  - [x] processedSentenceEndsRef.clear()実装
+  - [x] 文0から確実に検出開始
+  - 所要時間: 10分（実績）
+
+- [x] **sentenceTriggerManager.ts 新規作成** ✅
+  - [x] トリガー管理を一元化
+  - 所要時間: 設計済み（前回セッション）
+
+### 音声分割方式の基盤実装 ✅ 完了（バックエンド完全、フロントエンド準備完了）
+
+**完了日**: 2025-10-23（セッション#17中盤〜後半）
+**参照**: [docs/SEPARATED_AUDIO_DESIGN.md](../SEPARATED_AUDIO_DESIGN.md)
+
+#### バックエンド実装（100%完了）
+
+- [x] **generate_speech_separated() 関数実装** ✅
+  - [x] 既存コードから結合処理を削除
+  - [x] base64エンコードして配列で返す
+  - [x] 各文の音声データを個別に返却
+  - **ファイル**: `backend/app/services/openai_service.py`
+  - 所要時間: 20分（実績）
+
+- [x] **/api/tts-with-timings-separated エンドポイント追加** ✅
+  - [x] JSONで音声セグメント配列を返却
+  - [x] レート制限: 100/hour
+  - **ファイル**: `backend/app/api/routes/tts.py`
+  - 所要時間: 15分（実績）
+
+- [x] **スキーマ定義追加** ✅
+  - [x] AudioSegment, TTSResponseSeparated 追加
+  - **ファイル**: `backend/app/schemas/tts.py`
+  - 所要時間: 5分（実績）
+
+- [x] **Python構文チェック完了** ✅
+  - 所要時間: 3分（実績）
+
+#### フロントエンド実装（API層完了、AudioPlayer改造は次回）
+
+- [x] **API定数追加** ✅
+  - [x] TTS_WITH_TIMINGS_SEPARATED 追加
+  - **ファイル**: `frontend/src/constants/api.ts`
+  - 所要時間: 5分（実績）
+
+- [x] **performTTSSeparated() API関数実装** ✅
+  - [x] base64デコード、Blob配列生成
+  - [x] 各セグメントのduration取得
+  - **ファイル**: `frontend/src/services/api/tts.ts`
+  - 所要時間: 15分（実績）
+
+- [x] **App.tsx完全対応** ✅
+  - [x] audioSegments, segmentDurations state追加
+  - [x] handleGenerateSpeech()を分離方式に変更
+  - [x] AudioPlayerに新props渡す
+  - **ファイル**: `frontend/src/App.tsx`
+  - 所要時間: 20分（実績）
+
+- [x] **AudioPlayer Props更新** ✅
+  - [x] audioSegments, segmentDurations props追加
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+  - 所要時間: 5分（実績）
+
+#### ドキュメント作成
+
+- [x] **詳細設計書作成** ✅
+  - [x] バックエンド・フロントエンドの完全な実装計画
+  - [x] API利用料増加ゼロの確認
+  - [x] 段階的移行戦略、互換性維持
+  - **ファイル**: `docs/SEPARATED_AUDIO_DESIGN.md` (1,200行)
+  - 所要時間: 1時間（実績）
+
+### AudioPlayerリファクタリング計画 ✅ 計画書完成
+
+**完了日**: 2025-10-23（セッション#17終盤）
+**参照**: [docs/AUDIOPLAYER_REFACTORING.md](../AUDIOPLAYER_REFACTORING.md)
+
+- [x] **リファクタリング計画書作成** ✅
+  - [x] Hooksベースの設計（useAudioSegments, useRepeatControl など）
+  - [x] 各ファイル200-300行以内に分割
+  - [x] 詳細なAPI設計、実装順序
+  - [x] 成功基準（機能要件・非機能要件）
+  - **ファイル**: `docs/AUDIOPLAYER_REFACTORING.md` (700行)
+  - 所要時間: 30分（実績）
+
+**セッション#17合計**: 約3時間
+
+---
+
+## 🔴 最優先（次回セッション#18）
+
+### AudioPlayerリファクタリング + 音声分割方式完全実装
+
+**目標**: リピート機能を完璧に動作させる
+**期待効果**: バグ完全解決、コード保守性向上
+**参照**:
+- [docs/AUDIOPLAYER_REFACTORING.md](../AUDIOPLAYER_REFACTORING.md)
+- [docs/SEPARATED_AUDIO_DESIGN.md](../SEPARATED_AUDIO_DESIGN.md)
+
+#### フェーズ1: Hooks実装（2時間）
+
+- [ ] **types.ts 作成**
+  - [ ] PlaybackState, SentenceState, RepeatState, SegmentState 定義
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/types.ts`
+  - 所要時間: 15分
+
+- [ ] **useAudioSegments.ts 実装（⭐最重要）**
+  - [ ] 音声セグメントの管理
+  - [ ] Blob URLの生成・クリーンアップ
+  - [ ] セグメント切り替え機能
+  - [ ] プリロード機能
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useAudioSegments.ts`
+  - 所要時間: 45分
+
+- [ ] **useRepeatControl.ts 実装**
+  - [ ] リピート回数管理
+  - [ ] 自動進行制御
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useRepeatControl.ts`
+  - 所要時間: 20分
+
+- [ ] **useAudioPlayback.ts 実装**
+  - [ ] 基本再生制御（play, pause, setSpeed, seek）
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useAudioPlayback.ts`
+  - 所要時間: 30分
+
+- [ ] **useSentenceNavigation.ts 実装**
+  - [ ] 文の前後移動
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useSentenceNavigation.ts`
+  - 所要時間: 20分
+
+- [ ] **usePauseControl.ts 実装**
+  - [ ] 文間のポーズ設定
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/usePauseControl.ts`
+  - 所要時間: 15分
+
+- [ ] **useKeyboardShortcuts.ts 実装**
+  - [ ] キーボードイベントハンドリング
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useKeyboardShortcuts.ts`
+  - 所要時間: 15分
+
+#### フェーズ2: UIコンポーネント実装（1.5時間）
+
+- [ ] **PlaybackControls.tsx 実装**
+  - [ ] 再生/一時停止ボタン
+  - [ ] 速度プリセット
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/components/PlaybackControls.tsx`
+  - 所要時間: 30分
+
+- [ ] **ProgressBar.tsx 実装（簡略化）**
+  - [ ] シークバー（分離モードでは簡略）
+  - [ ] 文マーカー不要（各文が独立しているため）
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx`
+  - 所要時間: 30分
+
+- [ ] **SentenceControls.tsx 実装**
+  - [ ] 前の文/次の文ボタン
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/components/SentenceControls.tsx`
+  - 所要時間: 15分
+
+- [ ] **RepeatSettings.tsx 実装**
+  - [ ] リピート回数選択
+  - [ ] 自動進行チェックボックス
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/components/RepeatSettings.tsx`
+  - 所要時間: 20分
+
+- [ ] **ShortcutsHelp.tsx 実装**
+  - [ ] ショートカット一覧モーダル
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/components/ShortcutsHelp.tsx`
+  - 所要時間: 15分
+
+#### フェーズ3: メインコンポーネント統合（1時間）
+
+- [ ] **既存AudioPlayer.tsxをバックアップ**
+  - [ ] AudioPlayer.legacy.tsx として保存
+  - 所要時間: 5分
+
+- [ ] **新AudioPlayer.tsx実装**
+  - [ ] Hooksとコンポーネントの統合
+  - [ ] handleSegmentEnded() 実装
+  - [ ] 状態管理の調整
+  - **ファイル**: `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+  - 所要時間: 40分
+
+- [ ] **TypeScriptコンパイル確認**
+  - 所要時間: 10分
+
+- [ ] **スタイル調整**
+  - 所要時間: 5分
+
+#### フェーズ4: E2Eテスト（30分）
+
+- [ ] **ローカル環境テスト**
+  - [ ] 音声分離モードで再生
+  - [ ] リピート3回動作確認（1/3, 2/3, 3/3の表示）
+  - [ ] 文ナビゲーション確認
+  - [ ] ポーズ機能確認
+  - [ ] キーボードショートカット確認
+  - 所要時間: 20分
+
+- [ ] **バグ修正・調整**
+  - 所要時間: 10分
+
+**フェーズ合計**: 約5時間
 
 ---
 
