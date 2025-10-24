@@ -1,5 +1,5 @@
 """OpenAI TTS service"""
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from openai import OpenAI
 from io import BytesIO
 import wave
@@ -7,6 +7,7 @@ import struct
 import shutil
 import os
 import tempfile
+import base64
 
 # Configure environment for pydub BEFORE importing it
 def _setup_ffmpeg_environment():
@@ -325,6 +326,109 @@ class OpenAIService:
         except Exception as e:
             raise TTSGenerationError(
                 f"OpenAI TTS with timings failed: {str(e)}",
+                error_code=ERROR_TTS_FAILED
+            ) from e
+
+    def generate_speech_separated(
+        self,
+        sentences: List[str],
+        voice: str = "nova",
+        format: str = "mp3"
+    ) -> Tuple[List[Dict], float]:
+        """
+        Generate speech with separated audio files per sentence
+
+        Args:
+            sentences: List of sentences to convert to speech
+            voice: Voice to use (alloy, echo, fable, onyx, nova, shimmer)
+            format: Audio format (mp3 recommended for compatibility)
+
+        Returns:
+            Tuple of (audio_segments, total_duration)
+
+            audio_segments: List of dicts with:
+                - index: int (sentence index)
+                - audio_base64: str (base64-encoded audio)
+                - text: str (sentence text)
+                - duration: float (audio duration in seconds)
+
+            total_duration: float (sum of all segment durations)
+
+        Raises:
+            TTSGenerationError: If TTS generation fails
+        """
+        try:
+            # Validate inputs
+            valid_voices = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+            if voice not in valid_voices:
+                raise TTSGenerationError(
+                    f"Invalid voice: {voice}. Must be one of {valid_voices}",
+                    error_code=ERROR_TTS_FAILED
+                )
+
+            valid_formats = ["opus", "mp3", "aac", "flac"]
+            if format not in valid_formats:
+                raise TTSGenerationError(
+                    f"Invalid format: {format}. Must be one of {valid_formats}",
+                    error_code=ERROR_TTS_FAILED
+                )
+
+            if not sentences or len(sentences) == 0:
+                raise TTSGenerationError(
+                    "No sentences provided",
+                    error_code=ERROR_TTS_FAILED
+                )
+
+            # Generate TTS for each sentence
+            audio_segments = []
+            total_duration = 0.0
+
+            for idx, sentence_text in enumerate(sentences):
+                if not sentence_text.strip():
+                    continue
+
+                # Generate TTS for this sentence
+                response = self.client.audio.speech.create(
+                    model=OPENAI_TTS_MODEL,
+                    voice=voice,
+                    input=sentence_text,
+                    response_format=format,
+                    speed=OPENAI_TTS_SPEED
+                )
+
+                # Read audio data
+                audio_data = BytesIO()
+                for chunk in response.iter_bytes():
+                    audio_data.write(chunk)
+                audio_bytes = audio_data.getvalue()
+
+                # Get precise duration
+                duration = self._get_audio_duration(audio_bytes, format)
+
+                # Encode to base64
+                audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+
+                # Store segment
+                audio_segments.append({
+                    "index": idx,
+                    "audio_base64": audio_base64,
+                    "text": sentence_text,
+                    "duration": duration
+                })
+
+                total_duration += duration
+
+                print(f"[TTS Separated] Sentence {idx}: {duration:.3f}s, text: {sentence_text[:30]}...")
+
+            print(f"[TTS Separated] Generated {len(audio_segments)} separate audio files, total: {total_duration:.3f}s")
+
+            return audio_segments, total_duration
+
+        except TTSGenerationError:
+            raise
+        except Exception as e:
+            raise TTSGenerationError(
+                f"OpenAI TTS separated generation failed: {str(e)}",
                 error_code=ERROR_TTS_FAILED
             ) from e
 

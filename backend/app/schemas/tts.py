@@ -55,3 +55,27 @@ class TTSErrorResponse(BaseModel):
         ...,
         description="Human-readable error message"
     )
+
+
+class AudioSegment(BaseModel):
+    """Single audio segment for one sentence"""
+    index: int = Field(..., description="Sentence index")
+    audio_base64: str = Field(..., description="Base64-encoded audio data")
+    text: str = Field(..., description="Sentence text")
+    duration: float = Field(..., description="Audio duration in seconds")
+
+
+class TTSResponseSeparated(BaseModel):
+    """Response for separated audio generation"""
+    audio_segments: List[AudioSegment] = Field(
+        ...,
+        description="Array of audio segments (one per sentence)"
+    )
+    total_duration: float = Field(
+        ...,
+        description="Total duration of all segments"
+    )
+    format: str = Field(
+        ...,
+        description="Audio format used"
+    )

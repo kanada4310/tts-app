@@ -41,7 +41,8 @@
       "Bash(timeout /t 5 /nobreak)",
       "WebSearch",
       "Bash(git log:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(python -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

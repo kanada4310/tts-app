@@ -188,3 +188,84 @@ async def generate_speech_with_timings(
                 "message": f"Internal server error: {str(e)}"
             }
         )
+
+
+@router.post(
+    "/tts-with-timings-separated",
+    response_model=None,
+    responses={
+        200: {
+            "content": {"application/json": {}},
+            "description": "JSON with separated audio segments"
+        },
+        400: {"model": TTSErrorResponse},
+        422: {"model": TTSErrorResponse},
+        429: {"model": TTSErrorResponse},
+        500: {"model": TTSErrorResponse},
+    }
+)
+@limiter.limit("100/hour")
+async def generate_speech_separated(
+    request: Request,
+    tts_request: TTSRequest
+):
+    """
+    Generate speech with separated audio files per sentence
+
+    This endpoint returns an array of audio segments (one per sentence),
+    allowing for precise control over individual sentence playback.
+
+    Returns:
+        JSON with array of audio segments (each sentence = separate audio file)
+    """
+    try:
+        # Validate sentences
+        if not tts_request.sentences or len(tts_request.sentences) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "MISSING_SENTENCES",
+                    "message": "Sentences array is required for this endpoint"
+                }
+            )
+
+        print(f"TTS separated - Sentences: {len(tts_request.sentences)}, Voice: {tts_request.voice}, Format: {tts_request.format}")
+
+        # Generate separated audio files
+        audio_segments, total_duration = openai_service.generate_speech_separated(
+            sentences=tts_request.sentences,
+            voice=tts_request.voice,
+            format=tts_request.format
+        )
+
+        # Return JSON response
+        return JSONResponse(content={
+            "audio_segments": audio_segments,
+            "total_duration": total_duration,
+            "format": tts_request.format
+        })
+
+    except TTSGenerationError as e:
+        import traceback
+        print(f"TTS Generation Error: {e.message}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=400 if "Invalid" in e.message else 500,
+            detail={
+                "error": e.error_code,
+                "message": e.message
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"Unexpected TTS Error: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": ERROR_INTERNAL,
+                "message": f"Internal server error: {str(e)}"
+            }
+        )

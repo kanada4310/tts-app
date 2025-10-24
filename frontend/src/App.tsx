@@ -4,7 +4,7 @@ import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
 import { SentenceList } from '@/components/features/SentenceList'
 import { Tutorial } from '@/components/common/Tutorial'
-import { performTTS, performTTSWithTimings, createAudioURL } from '@/services/api/tts'
+import { performTTS, performTTSWithTimings, performTTSSeparated, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
@@ -20,6 +20,10 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+
+  // Separated audio mode (new)
+  const [audioSegments, setAudioSegments] = useState<Blob[]>([])
+  const [segmentDurations, setSegmentDurations] = useState<number[]>([])
 
   const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
     setOcrText(result.text)
@@ -43,22 +47,30 @@ function App() {
         URL.revokeObjectURL(audioUrl)
       }
 
-      // If we have sentences from OCR, use TTS with timings for precise pause placement
+      // If we have sentences from OCR, use SEPARATED audio mode for perfect timing
       if (ocrSentences && ocrSentences.length > 0) {
-        const { audioBlob, timings } = await performTTSWithTimings(
+        console.log('[App] Using separated audio mode:', ocrSentences.length, 'sentences')
+
+        const { audioBlobs, durations, totalDuration } = await performTTSSeparated(
           text,
           ocrSentences,
           TTS_VOICE,
           TTS_FORMAT
         )
-        const newAudioUrl = createAudioURL(audioBlob)
-        setAudioUrl(newAudioUrl)
-        setSentenceTimings(timings.sentence_timings)
+
+        setAudioSegments(audioBlobs)
+        setSegmentDurations(durations)
+        setAudioUrl('separated') // Flag to indicate separated mode
+        setSentenceTimings([]) // Not used in separated mode
+
+        console.log(`[App] Generated ${audioBlobs.length} audio segments, total: ${totalDuration}s`)
       } else {
         // Fallback to standard TTS without timings
         const audioBlob = await performTTS(text, TTS_VOICE, TTS_FORMAT)
         const newAudioUrl = createAudioURL(audioBlob)
         setAudioUrl(newAudioUrl)
+        setAudioSegments([])
+        setSegmentDurations([])
         setSentenceTimings([])
       }
     } catch (err) {
@@ -126,6 +138,8 @@ function App() {
               sourceText={ocrText}
               sourceSentences={ocrSentences}
               sentenceTimings={sentenceTimings}
+              audioSegments={audioSegments}
+              segmentDurations={segmentDurations}
               externalSentenceIndex={currentSentenceIndex}
               onSentenceChange={setCurrentSentenceIndex}
               onPlayStateChange={setIsPlaying}

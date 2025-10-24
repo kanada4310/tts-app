@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   OCR: '/api/ocr',
   TTS: '/api/tts',
   TTS_WITH_TIMINGS: '/api/tts-with-timings',
+  TTS_WITH_TIMINGS_SEPARATED: '/api/tts-with-timings-separated',
   HEALTH: '/health',
 } as const
 

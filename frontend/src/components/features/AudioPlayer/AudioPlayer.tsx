@@ -22,7 +22,9 @@ export interface AudioPlayerProps {
   audioUrl: string | null
   sourceText?: string // The original OCR text for fallback
   sourceSentences?: string[] // Pre-parsed sentences from backend
-  sentenceTimings?: SentenceTiming[] // Precise timings from TTS
+  sentenceTimings?: SentenceTiming[] // Precise timings from TTS (LEGACY - not used in separated mode)
+  audioSegments?: Blob[] // NEW: Separated audio blobs (one per sentence)
+  segmentDurations?: number[] // NEW: Duration of each segment
   externalSentenceIndex?: number // External sentence index from SentenceList clicks
   onPlaybackComplete?: () => void
   onSentenceChange?: (index: number) => void // Callback when sentence changes
@@ -34,6 +36,8 @@ export function AudioPlayer({
   sourceText,
   sourceSentences,
   sentenceTimings,
+  audioSegments,
+  segmentDurations,
   externalSentenceIndex,
   onPlaybackComplete,
   onSentenceChange,
