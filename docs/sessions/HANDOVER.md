@@ -5,6 +5,185 @@
 
 ---
 
+## セッション #18 - 2025-10-24（未完了）
+
+### 実施内容
+
+#### 1. AudioPlayer統合シークバー機能実装（未完了）
+
+**背景**:
+セッション#17で完成したAudioPlayer hooks-based architectureに、統合シークバー機能を追加開始。ユーザーから以下の要望を受ける：
+1. 全文章を1つのシークバーとして表示
+2. マウスオーバー時に文のプレビューをツールチップ表示
+3. 文リストからクリックでシーク
+
+**実施した作業**:
+
+##### タスク1: ProgressBar.tsx拡張（統合シークバー）
+- 新しいprops追加: `segmentDurations`, `currentSegmentIndex`, `sourceSentences`, `onSegmentSeek`
+- 統合モード判定: `isUnifiedMode = isSegmentMode && segmentDurations.length > 0`
+- 合計時間計算: `segmentDurations.reduce((sum, dur) => sum + dur, 0)`
+- 現在位置計算: 前のセグメントの合計時間 + 現在のセグメント内の時間
+- 文境界マーカー: 各文の**開始位置**に配置（ユーザーフィードバックで変更）
+- ツールチップ実装: `handleMouseMove`, `handleMouseLeave`イベントハンドラー
+- シーク機能: `handleSeek`でセグメント番号を計算して`onSegmentSeek`を呼び出し
+
+**変更ファイル**:
+- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` (201行)
+- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - ProgressBarへのprops追加
+- `frontend/src/components/features/AudioPlayer/styles.css` - スタイル調整
+
+##### タスク2: SentenceList統合
+- App.tsxのSentenceList componentをAudioPlayerに統合
+- クリックでセグメント移動: `onSentenceClick={(index) => switchToSegment(index, false)}`
+- 動作確認: **文リストからのシークは正常動作**
+
+##### タスク3: CSS調整（レスポンシブ対応）
+- シークバー高さ: 8px → 30px (クリックしやすく)
+- progress-bar-container: `padding-top: 50px`（マーカー番号用スペース）
+- 文マーカー: 白背景+青枠のタグ風デザイン
+- ツールチップ: 黒背景、マーカー番号の上に表示（`margin-bottom: 48px`）
+- `pointer-events: none`を子要素に追加（クリックイベントを親に伝播）
+
+---
+
+### 発生した問題（未解決）
+
+#### 問題1: シークバークリックが機能しない ❌
+
+**症状**:
+- シークバーをクリックしても何も起きない
+- コンソールログで`[ProgressBar] onClick fired`が表示されない
+- `[ProgressBar] Render:`は正常に表示（`isUnifiedMode: true`）
+
+**試した対策**:
+1. `pointer-events: none`を子要素に追加 → 効果なし
+2. z-indexを調整 (`progress-bar: z-index: 1`, `time-display: z-index: 0`) → 効果なし
+3. シークバー高さを30pxに拡大 → 効果なし
+4. デバッグログを追加 → イベントが全く発火していない
+
+**推測される原因**:
+- シークバーの上に別の透明な要素が重なっている
+- CSSのposition/z-indexの設定ミス
+- React合成イベントの伝播が阻害されている
+
+**次回の対処法**:
+1. ブラウザ開発者ツールでシークバーの要素を検査
+2. 重なっている要素を特定（Elementsパネルでz-indexとpositionを確認）
+3. HTML構造を見直し、不要なラッパーを削除
+
+---
+
+#### 問題2: ツールチップが表示されない ❌
+
+**症状**:
+- マウスオーバーしてもツールチップが全く表示されない
+- コンソールログで`[ProgressBar] onMouseMove fired`が表示されない
+
+**試した対策**:
+1. デバッグログを追加 → マウスイベントが全く発火していない
+2. イベントハンドラーをinlineに変更 → 効果なし
+
+**推測される原因**:
+- 問題1と同じく、シークバーの上に別の要素が重なっている
+- `onMouseMove`イベントがブロックされている
+
+**次回の対処法**:
+- 問題1の解決後、自動的に解決する可能性が高い
+
+---
+
+### 技術的決定事項
+
+#### 文マーカーを開始位置に配置
+
+**当初の実装**: 各文の終了位置にマーカー表示
+
+**ユーザーフィードバック**: 「文の先頭に付けたいです」
+
+**変更内容**:
+```typescript
+// 旧: 終了位置
+const cumulativeTime = segmentDurations.slice(0, index + 1).reduce((sum, dur) => sum + dur, 0)
+
+// 新: 開始位置
+const cumulativeTime = segmentDurations.slice(0, index).reduce((sum, dur) => sum + dur, 0)
+```
+
+**効果**: 文番号が文の開始位置を示すようになり、直感的に
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### 🔴 最優先タスク
+
+**1. シークバークリック機能の修正**（最重要）
+
+**手順**:
+1. ブラウザ開発者ツールを開く（F12）
+2. Elementsパネルでシークバー要素（`.progress-bar`）を右クリック → Inspect
+3. 重なっている要素を確認:
+   - z-indexが高い要素がないか
+   - positionがabsolute/fixed/stickyの要素がないか
+   - 透明な要素（`opacity: 0`や`visibility: hidden`）がないか
+4. 問題の要素を特定したら:
+   - z-indexを下げる
+   - `pointer-events: none`を追加
+   - 不要ならHTML構造から削除
+
+**期待される解決**:
+- コンソールに`[ProgressBar] onClick fired`が表示される
+- シークバークリックでセグメント移動が機能する
+- 同時にツールチップも表示されるようになる
+
+**2. ツールチップ表示の確認**
+
+シークバークリックが修正されれば、自動的にツールチップも機能するはず。
+- マウスオーバーで`[ProgressBar] onMouseMove fired`が表示されるか確認
+- ツールチップに文のプレビューが表示されるか確認
+
+**3. デバッグログの削除**
+
+動作確認後、以下のデバッグログを削除:
+- `ProgressBar.tsx`: `console.log('[ProgressBar] Render:', ...)`
+- `ProgressBar.tsx`: `console.log('[ProgressBar] onClick fired')`
+- `ProgressBar.tsx`: `console.log('[ProgressBar] onMouseMove fired')`
+- その他の詳細ログ
+
+---
+
+#### ⚠️ 注意事項
+
+- **文リストは正常動作**: `SentenceList`からのクリックシークは問題なく機能
+- **統合モードは有効**: ログで`isUnifiedMode: true`が確認済み
+- **props伝達は正常**: `segmentDurationsLength: 10`, `sourceSentencesLength: 10`
+- **問題はイベント伝播のみ**: UIロジックは正しい、イベントが発火していない
+
+#### 📋 次回セッションで参照すべきファイル
+
+**デバッグ時**:
+- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - イベントハンドラー
+- `frontend/src/components/features/AudioPlayer/styles.css` - z-index, position設定
+
+**修正後**:
+- 同上ファイルでデバッグログを削除
+
+---
+
+### 成果物リスト
+
+#### 更新ファイル（未完成）
+- [ ] `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - 統合シークバー実装（イベント未動作）
+- [ ] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - ProgressBarへのprops追加
+- [ ] `frontend/src/components/features/AudioPlayer/styles.css` - レスポンシブ対応
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - SentenceList統合（動作確認済み）
+
+#### Git commit
+- [ ] コミット未実施（機能未完成のため）
+
+---
+
 ## セッション #17 - 2025-10-23
 
 ### 実施内容

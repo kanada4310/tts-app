@@ -115,17 +115,28 @@
   display: flex;
   gap: 8px;
   margin-left: auto;
+  margin-bottom: 8px;
   font-size: 14px;
   color: #666;
   font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 0; /* Below progress bar */
+}
+
+/* Progress Section */
+.progress-section {
+  margin-bottom: 20px;
+  overflow: visible; /* Allow tooltip to overflow */
+  padding-top: 40px; /* Space for tooltip above */
 }
 
 .progress-bar-container {
   position: relative;
   width: 100%;
-  margin-bottom: 20px;
-  padding-top: 30px; /* Space for sentence numbers above seekbar */
   cursor: pointer;
+  margin-top: 8px;
+  padding: 12px 0; /* Add padding for larger clickable area */
+  overflow: visible; /* Allow tooltip to overflow */
 }
 
 .progress-bar {
@@ -138,34 +149,26 @@
 }
 
 .progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
   background-color: #4CAF50;
   transition: width 0.1s linear;
   border-radius: 4px;
+  pointer-events: none;
 }
 
 .sentence-marker {
   position: absolute;
-  top: 0;
+  top: 50%;
+  transform: translateY(-50%);
   width: 2px;
-  height: 100%;
+  height: 16px;
   background-color: #2196F3;
   opacity: 0.6;
   transition: opacity 0.3s ease;
   pointer-events: none;
-}
-
-.sentence-marker-number {
-  position: absolute;
-  top: -24px; /* Moved further up for better visibility */
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: #2196F3;
-  font-weight: 600;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 10; /* Ensure it appears above other elements */
 }
 
 .progress-bar-container:hover .sentence-marker {
@@ -174,18 +177,19 @@
 
 .progress-tooltip {
   position: absolute;
-  bottom: 100%;
-  left: 0;
+  bottom: calc(100% + 12px);
   transform: translateX(-50%);
-  margin-bottom: 8px;
-  padding: 6px 12px;
-  background-color: rgba(0, 0, 0, 0.8);
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.9);
   color: white;
   font-size: 12px;
-  border-radius: 4px;
-  white-space: nowrap;
+  border-radius: 6px;
   pointer-events: none;
-  z-index: 10;
+  z-index: 100;
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .progress-tooltip::after {
@@ -194,8 +198,8 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border: 4px solid transparent;
-  border-top-color: rgba(0, 0, 0, 0.8);
+  border: 6px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
 }
 
 .speed-control {
@@ -517,14 +521,19 @@
   /* Mobile: adjust padding for sentence numbers below seekbar */
   .progress-bar-container {
     padding-top: 0;
-    padding-bottom: 30px; /* Space for sentence numbers below seekbar */
+    padding-bottom: 60px; /* Space for sentence numbers below seekbar */
   }
 
   /* Mobile: position sentence numbers below seekbar */
+  .sentence-marker {
+    top: 0;
+    height: calc(100% + 50px); /* Extend below on mobile */
+  }
+
   .sentence-marker-number {
     top: auto;
-    bottom: -24px; /* Position below seekbar */
-    font-size: 12px; /* Slightly larger on mobile */
+    bottom: -48px; /* Position below seekbar */
+    font-size: 13px; /* Slightly larger on mobile */
   }
 
   /* Mobile-specific tooltip: larger and positioned below seekbar */

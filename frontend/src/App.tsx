@@ -2,9 +2,8 @@ import { useState } from 'react'
 import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
-import { SentenceList } from '@/components/features/SentenceList'
 import { Tutorial } from '@/components/common/Tutorial'
-import { performTTS, performTTSWithTimings, performTTSSeparated, createAudioURL } from '@/services/api/tts'
+import { performTTS, performTTSSeparated, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
@@ -19,7 +18,6 @@ function App() {
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
 
   // Separated audio mode (new)
   const [audioSegments, setAudioSegments] = useState<Blob[]>([])
@@ -88,11 +86,6 @@ function App() {
     setError(errorMessage)
   }
 
-  // Callback function for sentence seek - will be called by SentenceList
-  const handleSentenceSeekRequest = (index: number) => {
-    setCurrentSentenceIndex(index)
-  }
-
   return (
     <div className="app">
       <Tutorial />
@@ -142,23 +135,11 @@ function App() {
               segmentDurations={segmentDurations}
               externalSentenceIndex={currentSentenceIndex}
               onSentenceChange={setCurrentSentenceIndex}
-              onPlayStateChange={setIsPlaying}
             />
           </section>
         )}
 
-        {/* Show SentenceList after audio is generated */}
-        {audioUrl && ocrSentences.length > 0 && (
-          <section className="sentence-list-section">
-            <SentenceList
-              sentences={ocrSentences}
-              sentenceTimings={sentenceTimings}
-              currentSentenceIndex={currentSentenceIndex}
-              isPlaying={isPlaying}
-              onSentenceClick={handleSentenceSeekRequest}
-            />
-          </section>
-        )}
+        {/* SentenceList is now integrated into AudioPlayer */}
 
         {!ocrText && imagePreviews.length === 0 && (
           <div className="welcome-message">
