@@ -12,6 +12,7 @@ import './App.css'
 function App() {
   const [ocrText, setOcrText] = useState('')
   const [ocrSentences, setOcrSentences] = useState<string[]>([])
+  const [originalOcrSentences, setOriginalOcrSentences] = useState<string[]>([]) // Store original OCR sentences
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [sentenceTimings, setSentenceTimings] = useState<SentenceTiming[]>([])
@@ -24,10 +25,46 @@ function App() {
   const [segmentDurations, setSegmentDurations] = useState<number[]>([])
 
   const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
+    const sentences = result.sentences || []
     setOcrText(result.text)
-    setOcrSentences(result.sentences || [])
+    setOcrSentences(sentences)
+    setOriginalOcrSentences(sentences) // Store original OCR sentences
     setImagePreviews(imageDataUrls)
     setError(null)
+  }
+
+  const handleTextChange = (newText: string) => {
+    setOcrText(newText)
+
+    // If text hasn't changed, keep original OCR sentences (best quality)
+    const originalText = originalOcrSentences.join(' ')
+    if (newText.trim() === originalText.trim()) {
+      setOcrSentences(originalOcrSentences)
+      return
+    }
+
+    // Text was edited, re-parse sentences
+    // Use improved logic similar to backend (Gemini prompt)
+    const sentences = newText
+      .split(/(?<=[。.!?！？])(?=\s|[A-Z\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF])/) // Split after sentence endings
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      // Filter out common abbreviations that shouldn't split
+      .reduce((acc: string[], curr) => {
+        if (acc.length === 0) {
+          return [curr]
+        }
+        const prev = acc[acc.length - 1]
+        // Check if previous sentence ends with common abbreviation
+        if (/(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|e\.g|i\.e|U\.S\.A)\.$/.test(prev)) {
+          // Merge with previous sentence
+          acc[acc.length - 1] = prev + ' ' + curr
+          return acc
+        }
+        return [...acc, curr]
+      }, [])
+
+    setOcrSentences(sentences)
   }
 
   const handleGenerateSpeech = async (text: string) => {
@@ -136,6 +173,7 @@ function App() {
           <section className="editor-section">
             <TextEditor
               initialText={ocrText}
+              onTextChange={handleTextChange}
               onGenerateSpeech={handleGenerateSpeech}
               isGenerating={isGeneratingSpeech}
             />
@@ -157,6 +195,7 @@ function App() {
                 setAudioUrl(null)
                 setOcrText('')
                 setOcrSentences([])
+                setOriginalOcrSentences([])
                 setImagePreviews([])
                 setSentenceTimings([])
                 setAudioSegments([])
