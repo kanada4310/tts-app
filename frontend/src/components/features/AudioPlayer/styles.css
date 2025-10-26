@@ -681,6 +681,19 @@
     margin-top: 12px;
   }
 
+  /* Mobile: Custom spacing for specific component pairs */
+  .sentence-controls {
+    margin-top: 16px !important; /* Seekbar to Skip: slightly wider */
+  }
+
+  .speed-settings {
+    margin-top: 20px !important; /* Skip to Speed: section separator */
+  }
+
+  .repeat-settings {
+    margin-top: 12px !important; /* Speed to Repeat: normal spacing */
+  }
+
   .control-button {
     min-width: 44px !important;
     min-height: 44px !important;
