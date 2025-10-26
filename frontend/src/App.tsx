@@ -108,22 +108,7 @@ function App() {
           </div>
         )}
 
-        <section className="upload-section">
-          <ImageUpload onOCRComplete={handleOCRComplete} onError={handleError} />
-        </section>
-
-        {/* Show TextEditor only before audio is generated */}
-        {ocrText && !audioUrl && (
-          <section className="editor-section">
-            <TextEditor
-              initialText={ocrText}
-              onGenerateSpeech={handleGenerateSpeech}
-              isGenerating={isGeneratingSpeech}
-            />
-          </section>
-        )}
-
-        {/* Show AudioPlayer after audio is generated */}
+        {/* Show AudioPlayer at the top after audio is generated */}
         {audioUrl && (
           <section className="player-section">
             <AudioPlayer
@@ -139,7 +124,54 @@ function App() {
           </section>
         )}
 
+        {/* Show ImageUpload only before audio is generated */}
+        {!audioUrl && (
+          <section className="upload-section">
+            <ImageUpload onOCRComplete={handleOCRComplete} onError={handleError} />
+          </section>
+        )}
+
+        {/* Show TextEditor only before audio is generated */}
+        {ocrText && !audioUrl && (
+          <section className="editor-section">
+            <TextEditor
+              initialText={ocrText}
+              onGenerateSpeech={handleGenerateSpeech}
+              isGenerating={isGeneratingSpeech}
+            />
+          </section>
+        )}
+
         {/* SentenceList is now integrated into AudioPlayer */}
+
+        {/* Re-upload button at the bottom after audio is generated */}
+        {audioUrl && (
+          <section className="reupload-section">
+            <button
+              className="reupload-button"
+              onClick={() => {
+                // Reset all states
+                if (audioUrl && audioUrl !== 'separated') {
+                  URL.revokeObjectURL(audioUrl)
+                }
+                setAudioUrl(null)
+                setOcrText('')
+                setOcrSentences([])
+                setImagePreviews([])
+                setSentenceTimings([])
+                setAudioSegments([])
+                setSegmentDurations([])
+                setCurrentSentenceIndex(0)
+                setError(null)
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              </svg>
+              新しい画像をアップロード
+            </button>
+          </section>
+        )}
 
         {!ocrText && imagePreviews.length === 0 && (
           <div className="welcome-message">

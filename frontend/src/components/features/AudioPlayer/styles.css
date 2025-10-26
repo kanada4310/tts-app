@@ -4,11 +4,50 @@
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px;
   border: 1px solid #ddd;
   border-radius: 12px;
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+/* Comfortable spacing between components (PC/Tablet) */
+.audio-player > * + * {
+  margin-top: 16px;
+}
+
+/* Responsive adjustments for smaller desktop/tablet screens */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .audio-player {
+    max-width: 90%;
+    padding: 20px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .audio-player {
+    max-width: 95%;
+    padding: 18px;
+  }
+}
+
+/* PC/Tablet: Custom spacing for specific component pairs */
+@media (min-width: 769px) {
+  /* Seekbar to Skip buttons: slightly wider */
+  .sentence-controls {
+    margin-top: 20px !important;
+  }
+
+  /* Skip to Speed Settings: section separator */
+  .speed-settings {
+    margin-top: 24px !important;
+  }
+
+  /* Speed to Repeat: normal spacing */
+  .repeat-settings {
+    margin-top: 16px !important;
+  }
 }
 
 .player-header {
@@ -111,11 +150,61 @@
   cursor: not-allowed;
 }
 
+/* Playback Button (Main play/pause button) */
+.playback-button-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.playback-button {
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.playback-button:hover:not(:disabled) {
+  background-color: #45a049;
+  transform: scale(1.05);
+}
+
+.playback-button:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.playback-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.playback-button .icon-play,
+.playback-button .icon-pause {
+  font-size: 20px;
+}
+
+.playback-button .button-text {
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .time-display {
   display: flex;
   gap: 8px;
   margin-left: auto;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   font-size: 14px;
   color: #666;
   font-variant-numeric: tabular-nums;
@@ -125,46 +214,47 @@
 
 /* Progress Section */
 .progress-section {
-  margin-bottom: 20px;
+  margin: 0;
+  padding: 0;
   overflow: visible; /* Allow tooltip to overflow */
-  padding-top: 40px; /* Space for tooltip above */
 }
 
 .progress-bar-container {
   position: relative;
   width: 100%;
+  height: 8px; /* Match progress-bar height */
   cursor: pointer;
-  margin-top: 8px;
-  padding: 12px 0; /* Add padding for larger clickable area */
+  margin: 4px 0 0 0;
   overflow: visible; /* Allow tooltip to overflow */
 }
 
 .progress-bar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 8px;
+  height: 100%; /* Fill container */
   background-color: #e0e0e0;
-  border-radius: 4px;
-  overflow: visible;
+  border-radius: 0; /* Remove rounded corners */
+  overflow: hidden;
 }
 
 .progress-fill {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
+  height: 100%; /* Use 100% to match parent height */
   background-color: #4CAF50;
   transition: width 0.1s linear;
-  border-radius: 4px;
+  border-radius: 0; /* Remove rounded corners */
   pointer-events: none;
 }
 
 .sentence-marker {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0; /* Align to top of progress bar */
+  bottom: 0; /* Extend to bottom */
   width: 2px;
-  height: 16px;
   background-color: #2196F3;
   opacity: 0.6;
   transition: opacity 0.3s ease;
@@ -179,17 +269,19 @@
   position: absolute;
   bottom: calc(100% + 12px);
   transform: translateX(-50%);
-  padding: 8px 12px;
-  background-color: rgba(0, 0, 0, 0.9);
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.9);
   color: white;
-  font-size: 12px;
-  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
   pointer-events: none;
   z-index: 100;
   white-space: nowrap;
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .progress-tooltip::after {
@@ -277,6 +369,113 @@
 }
 
 .preset-button.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+/* Speed Controls (for PlaybackControls component) */
+.playback-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Main Control Buttons Container */
+.main-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* Sentence Navigation Controls */
+.sentence-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+}
+
+.sentence-nav-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sentence-nav-button:hover:not(:disabled) {
+  border-color: #4CAF50;
+  color: #4CAF50;
+  background-color: #f1f8f4;
+}
+
+.sentence-nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sentence-nav-button .icon {
+  font-size: 16px;
+}
+
+.sentence-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.sentence-indicator .current-sentence {
+  color: #4CAF50;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.speed-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.speed-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.speed-preset-button {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.speed-preset-button:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.speed-preset-button.active {
   background-color: #4CAF50;
   color: white;
   border-color: #4CAF50;
@@ -477,6 +676,11 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
+  /* Slightly more compact spacing on mobile */
+  .audio-player > * + * {
+    margin-top: 12px;
+  }
+
   .control-button {
     min-width: 44px !important;
     min-height: 44px !important;
@@ -489,51 +693,41 @@
     height: 28px;
   }
 
-  /* Seekbar: increase height to 44px to match speed slider */
+  /* Mobile: adjust container for sentence numbers below seekbar */
+  .progress-bar-container {
+    height: 44px !important; /* Larger touch target */
+    margin-bottom: 30px !important; /* Reduced space for compact layout */
+  }
+
+  /* Seekbar: increase height to 44px for better touch target */
   .progress-bar {
-    height: 44px !important;
-    border-radius: 22px;
+    height: 100% !important; /* Fill container */
+    border-radius: 0 !important; /* Keep square corners */
+    top: 0 !important;
+    left: 0 !important;
+    position: absolute !important;
   }
 
   .progress-fill {
-    height: 44px !important;
-    border-radius: 22px;
+    height: 100% !important; /* Use 100% to match parent height */
+    border-radius: 0 !important; /* Keep square corners */
+    top: 0 !important;
+    bottom: 0 !important;
   }
 
-  /* Expand tap area using ::before pseudo-element (no longer needed with 44px) */
-  .progress-bar-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-  }
-
-  /* Sentence markers: 8px width, 44px height to match seekbar */
+  /* Sentence markers: wider on mobile, aligned to progress bar */
   .sentence-marker {
     width: 8px !important;
-    height: 44px !important;
-    border-radius: 4px;
-  }
-
-  /* Mobile: adjust padding for sentence numbers below seekbar */
-  .progress-bar-container {
-    padding-top: 0;
-    padding-bottom: 60px; /* Space for sentence numbers below seekbar */
-  }
-
-  /* Mobile: position sentence numbers below seekbar */
-  .sentence-marker {
-    top: 0;
-    height: calc(100% + 50px); /* Extend below on mobile */
+    top: 0 !important;
+    bottom: 0 !important;
+    height: auto !important; /* Let top/bottom control the height */
+    border-radius: 0 !important; /* Keep square corners */
   }
 
   .sentence-marker-number {
     top: auto;
-    bottom: -48px; /* Position below seekbar */
-    font-size: 13px; /* Slightly larger on mobile */
+    bottom: -28px; /* Position below seekbar, compact */
+    font-size: 12px; /* Compact size */
   }
 
   /* Mobile-specific tooltip: larger and positioned below seekbar */
@@ -618,6 +812,92 @@
     width: 24px;
     height: 24px;
   }
+
+  /* Speed Settings - Mobile */
+  .speed-settings {
+    padding: 14px 16px;
+    margin: 12px auto 0;
+  }
+
+  .speed-settings-header h3 {
+    font-size: 14px;
+  }
+
+  .speed-settings-header .header-controls .dynamic-toggle-button {
+    padding: 8px 12px;
+    min-height: 36px;
+    min-width: 70px;
+    font-size: 13px;
+  }
+
+  .speed-settings-header .header-controls .dynamic-toggle-button .current-value {
+    font-size: 13px;
+  }
+
+  .speed-preset-button {
+    flex: 1;
+    min-width: calc(33% - 6px);
+    padding: 10px 12px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  /* Repeat Settings - Mobile */
+  .repeat-settings {
+    padding: 14px 16px;
+    margin: 12px auto 0;
+  }
+
+  .repeat-settings-header h3 {
+    font-size: 14px;
+  }
+
+  .repeat-settings-header .header-controls .dynamic-toggle-button {
+    padding: 8px 12px;
+    min-height: 36px;
+    min-width: 70px;
+    font-size: 13px;
+  }
+
+  .repeat-settings-header .header-controls .dynamic-toggle-button .current-value {
+    font-size: 13px;
+  }
+
+  .repeat-option {
+    padding: 10px 12px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .checkbox-label {
+    font-size: 14px;
+    min-height: 44px;
+  }
+
+  .checkbox-input {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Sentence Controls - Mobile */
+  .sentence-controls {
+    padding: 12px;
+    margin: 12px 0;
+  }
+
+  .sentence-nav-button {
+    padding: 10px 16px;
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .sentence-indicator {
+    font-size: 15px;
+  }
+
+  .sentence-indicator .current-sentence {
+    font-size: 17px;
+  }
 }
 
 /* Repeat Playback Control Styles */
@@ -691,4 +971,259 @@
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+/* Speed Settings Component Styles - matching sentence-list structure */
+.speed-settings {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments for smaller desktop/tablet screens */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .speed-settings {
+    max-width: 90%;
+    padding: 14px 18px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .speed-settings {
+    max-width: 95%;
+    padding: 14px 16px;
+  }
+}
+
+.speed-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.speed-settings-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.speed-settings-header .header-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.speed-settings-header .header-controls .dynamic-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 28px;
+  min-width: 80px;
+}
+
+.speed-settings-header .header-controls .dynamic-toggle-button:hover {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.speed-settings-header .header-controls .dynamic-toggle-button .current-value {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.speed-settings-header .header-controls .dynamic-toggle-button .toggle-icon {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.speed-settings-content {
+  max-height: 500px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Repeat Settings Component Styles - matching sentence-list structure */
+.repeat-settings {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments for smaller desktop/tablet screens */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .repeat-settings {
+    max-width: 90%;
+    padding: 14px 18px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .repeat-settings {
+    max-width: 95%;
+    padding: 14px 16px;
+  }
+}
+
+.repeat-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.repeat-settings-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.repeat-settings-header .header-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.repeat-settings-header .header-controls .dynamic-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  border: 1px solid #4CAF50;
+  border-radius: 4px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 28px;
+  min-width: 80px;
+}
+
+.repeat-settings-header .header-controls .dynamic-toggle-button:hover {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.repeat-settings-header .header-controls .dynamic-toggle-button .current-value {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.repeat-settings-header .header-controls .dynamic-toggle-button .toggle-icon {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.repeat-settings-content {
+  max-height: 500px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.repeat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.repeat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.repeat-counter {
+  font-size: 13px;
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.repeat-count-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.repeat-option {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.repeat-option:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.repeat-option.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.repeat-checkbox-group {
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+}
+
+.checkbox-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  user-select: none;
 }

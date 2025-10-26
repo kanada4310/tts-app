@@ -19,6 +19,7 @@ import {
   PlaybackControls,
   ProgressBar,
   SentenceControls,
+  SpeedSettings,
   RepeatSettings,
   ShortcutsHelp,
 } from './components'
@@ -83,6 +84,21 @@ export function AudioPlayer({
     switchToSegment,
     isSegmentMode,
   })
+
+  // ========================================
+  // Stop Function
+  // ========================================
+
+  const stop = useCallback(() => {
+    pause()
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+    }
+    // Reset to first segment if in segment mode
+    if (isSegmentMode) {
+      switchToSegment(0, false)
+    }
+  }, [pause, audioRef, isSegmentMode, switchToSegment])
 
   // ========================================
   // Segment Ended Handler (Core Logic)
@@ -196,14 +212,13 @@ export function AudioPlayer({
       {/* Hidden Audio Element */}
       <audio ref={audioRef} onEnded={handleSegmentEnded} />
 
-      {/* Playback Controls */}
+      {/* Playback Controls (Play/Pause/Stop only) */}
       <PlaybackControls
         isPlaying={playbackState.isPlaying}
-        speed={playbackState.speed}
         isLoading={playbackState.isLoading}
         onPlay={play}
         onPause={pause}
-        onSpeedChange={setSpeed}
+        onStop={stop}
       />
 
       {/* Progress Bar */}
@@ -222,7 +237,7 @@ export function AudioPlayer({
         onSegmentSeek={switchToSegment}
       />
 
-      {/* Sentence Navigation */}
+      {/* Sentence Navigation (Skip buttons) */}
       {isSegmentMode && (
         <SentenceControls
           currentIndex={segmentState.currentIndex}
@@ -234,7 +249,10 @@ export function AudioPlayer({
         />
       )}
 
-      {/* Repeat Settings */}
+      {/* Speed Settings (Collapsible) */}
+      <SpeedSettings speed={playbackState.speed} onSpeedChange={setSpeed} />
+
+      {/* Repeat Settings (Collapsible) */}
       {isSegmentMode && (
         <RepeatSettings
           repeatCount={repeatState.count}
@@ -247,7 +265,7 @@ export function AudioPlayer({
         />
       )}
 
-      {/* Sentence List */}
+      {/* Sentence List (Collapsible) */}
       {isSegmentMode && sourceSentences && sourceSentences.length > 0 && (
         <SentenceList
           sentences={sourceSentences}

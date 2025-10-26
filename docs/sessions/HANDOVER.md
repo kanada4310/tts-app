@@ -5,112 +5,264 @@
 
 ---
 
-## セッション #18 - 2025-10-24（未完了）
+## セッション #19 - 2025-10-26（⏳ 進行中、約80%完了）
 
 ### 実施内容
 
-#### 1. AudioPlayer統合シークバー機能実装（未完了）
+#### 1. UI改善プラン Phase 1実装（コンパクトレイアウト＆レスポンシブデザイン）
 
 **背景**:
-セッション#17で完成したAudioPlayer hooks-based architectureに、統合シークバー機能を追加開始。ユーザーから以下の要望を受ける：
-1. 全文章を1つのシークバーとして表示
-2. マウスオーバー時に文のプレビューをツールチップ表示
-3. 文リストからクリックでシーク
+セッション#18で作成したUI改善プラン（グラデーション、紫色ベース）を実装開始したが、ユーザーから即座に強い否定的フィードバックを受ける。「全然反映されてないですよ！緑色のもともとのカラートーンから大きくずらさないでほしい」「再生ボタンは色すら反映されていません」。
+
+方針を完全変更し、緑色ベース（#4CAF50）を維持したまま、コンパクトでクリーンなレイアウトを目指す新しいPhase 1を実装。
 
 **実施した作業**:
 
-##### タスク1: ProgressBar.tsx拡張（統合シークバー）
-- 新しいprops追加: `segmentDurations`, `currentSegmentIndex`, `sourceSentences`, `onSegmentSeek`
-- 統合モード判定: `isUnifiedMode = isSegmentMode && segmentDurations.length > 0`
-- 合計時間計算: `segmentDurations.reduce((sum, dur) => sum + dur, 0)`
-- 現在位置計算: 前のセグメントの合計時間 + 現在のセグメント内の時間
-- 文境界マーカー: 各文の**開始位置**に配置（ユーザーフィードバックで変更）
-- ツールチップ実装: `handleMouseMove`, `handleMouseLeave`イベントハンドラー
-- シーク機能: `handleSeek`でセグメント番号を計算して`onSegmentSeek`を呼び出し
+##### 作業1: PlaybackControlsのリファクタリング（45分）
+**問題**: CSSが全く反映されない
+**原因**: クラス名のミスマッチ（コンポーネント: `playback-button`、CSS: `control-button` のみ定義）
+**解決**:
+- 不足しているCSSクラスを全て追加
+- トグル式から独立ボタン（Play/Pause/Stop）に変更
+- 速度設定をPlaybackControlsから削除（SpeedSettingsに分離）
 
 **変更ファイル**:
-- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` (201行)
-- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - ProgressBarへのprops追加
-- `frontend/src/components/features/AudioPlayer/styles.css` - スタイル調整
+- `frontend/src/components/features/AudioPlayer/components/PlaybackControls.tsx`
+  - stop機能追加（onStop prop）
+  - 独立した3つのボタンに変更
+  ```tsx
+  <button onClick={onPlay} disabled={isLoading || isPlaying}>Play</button>
+  <button onClick={onPause} disabled={isLoading || !isPlaying}>Pause</button>
+  <button onClick={onStop} disabled={isLoading}>Stop</button>
+  ```
 
-##### タスク2: SentenceList統合
-- App.tsxのSentenceList componentをAudioPlayerに統合
-- クリックでセグメント移動: `onSentenceClick={(index) => switchToSegment(index, false)}`
-- 動作確認: **文リストからのシークは正常動作**
+##### 作業2: SpeedSettings独立コンポーネント作成（30分）
+**目的**: 速度設定をPlaybackControlsから分離、折りたたみ機能追加
 
-##### タスク3: CSS調整（レスポンシブ対応）
-- シークバー高さ: 8px → 30px (クリックしやすく)
-- progress-bar-container: `padding-top: 50px`（マーカー番号用スペース）
-- 文マーカー: 白背景+青枠のタグ風デザイン
-- ツールチップ: 黒背景、マーカー番号の上に表示（`margin-bottom: 48px`）
-- `pointer-events: none`を子要素に追加（クリックイベントを親に伝播）
+**新規作成ファイル**: `frontend/src/components/features/AudioPlayer/components/SpeedSettings.tsx`
 
----
+**主な機能**:
+- 折りたたみ機能（useState(false)、デフォルト折りたたみ）
+- 動的値表示ボタン（現在の速度を薄緑背景ボタン内に表示）
+  ```tsx
+  <button className="dynamic-toggle-button">
+    <span className="current-value">{speed}x</span>
+    <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
+  </button>
+  ```
 
-### 発生した問題（未解決）
+##### 作業3: RepeatSettingsリファクタリング（30分）
+**変更**: 折りたたみ機能追加、動的値表示ボタン実装
 
-#### 問題1: シークバークリックが機能しない ❌
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/components/RepeatSettings.tsx`
 
-**症状**:
-- シークバーをクリックしても何も起きない
-- コンソールログで`[ProgressBar] onClick fired`が表示されない
-- `[ProgressBar] Render:`は正常に表示（`isUnifiedMode: true`）
+**主な変更**:
+- `isRepeatExpanded` state追加
+- `getRepeatLabel()` 関数実装（現在のリピート回数をラベル化）
+- 動的値表示ボタン実装
+  ```tsx
+  <button className="dynamic-toggle-button">
+    <span className="current-value">
+      {getRepeatLabel()}
+      {getRepeatDisplayText && repeatCount > 1 && (
+        <span>{getRepeatDisplayText()}</span>
+      )}
+    </span>
+    <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
+  </button>
+  ```
 
-**試した対策**:
-1. `pointer-events: none`を子要素に追加 → 効果なし
-2. z-indexを調整 (`progress-bar: z-index: 1`, `time-display: z-index: 0`) → 効果なし
-3. シークバー高さを30pxに拡大 → 効果なし
-4. デバッグログを追加 → イベントが全く発火していない
+##### 作業4: 状態同期の修正（45分）
+**問題**: セグメントにシークすると一時停止ボタンが無効化される
+**原因**: switchToSegment が直接 audio.play() を呼ぶが、useAudioPlayback の isPlaying 状態が更新されない
 
-**推測される原因**:
-- シークバーの上に別の透明な要素が重なっている
-- CSSのposition/z-indexの設定ミス
-- React合成イベントの伝播が阻害されている
+**解決**: useAudioPlayback.ts に play/pause イベントリスナー追加
 
-**次回の対処法**:
-1. ブラウザ開発者ツールでシークバーの要素を検査
-2. 重なっている要素を特定（Elementsパネルでz-indexとpositionを確認）
-3. HTML構造を見直し、不要なラッパーを削除
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useAudioPlayback.ts`
+```typescript
+const handlePlay = () => {
+  console.log('[useAudioPlayback] Play event detected')
+  setPlaybackState(prev => ({ ...prev, isPlaying: true, isLoading: false }))
+}
 
----
+const handlePause = () => {
+  console.log('[useAudioPlayback] Pause event detected')
+  setPlaybackState(prev => ({ ...prev, isPlaying: false }))
+}
 
-#### 問題2: ツールチップが表示されない ❌
+audio.addEventListener('play', handlePlay)
+audio.addEventListener('pause', handlePause)
+```
 
-**症状**:
-- マウスオーバーしてもツールチップが全く表示されない
-- コンソールログで`[ProgressBar] onMouseMove fired`が表示されない
+##### 作業5: レスポンシブデザイン実装（30分）
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-**試した対策**:
-1. デバッグログを追加 → マウスイベントが全く発火していない
-2. イベントハンドラーをinlineに変更 → 効果なし
+**主な変更**:
+- 900px, 1024px でのブレークポイント追加
+  ```css
+  @media (max-width: 1024px) and (min-width: 769px) {
+    .audio-player { max-width: 90%; padding: 20px; }
+  }
+  @media (max-width: 900px) and (min-width: 769px) {
+    .audio-player { max-width: 95%; padding: 18px; }
+  }
+  ```
 
-**推測される原因**:
-- 問題1と同じく、シークバーの上に別の要素が重なっている
-- `onMouseMove`イベントがブロックされている
+##### 作業6: ボタンサイズの統一（20分）
+**変更ファイル**:
+- `frontend/src/components/features/AudioPlayer/styles.css`
+- `frontend/src/components/features/SentenceList/styles.css`
 
-**次回の対処法**:
-- 問題1の解決後、自動的に解決する可能性が高い
+**主な変更**:
+- 全てのトグルボタンを統一サイズに
+  ```css
+  .dynamic-toggle-button {
+    min-height: 28px;
+    min-width: 80px;
+    background-color: #e8f5e9; /* 薄緑 */
+    color: #2e7d32;
+  }
+  ```
+
+##### 作業7: シークバーの四角デザイン＆高さ統一（1時間）
+**問題**: シークバー背景・プログレスバー・文マーカーの高さが一致しない
+
+**試行錯誤**:
+1. 固定値 8px → ずれる
+2. height: 100% → まだずれる
+3. flexbox（align-items: center） → 2倍の高さに見える
+4. **最終解決**: .progress-bar-container を height: 8px 固定、.progress-bar を position: absolute + height: 100%
+
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
+```css
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+  height: 8px; /* 固定 */
+  cursor: pointer;
+  margin: 4px 0 0 0;
+}
+
+.progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%; /* 親要素に合わせる */
+  background-color: #e0e0e0;
+  border-radius: 0; /* 四角 */
+}
+
+.sentence-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0; /* 上下端を揃える */
+  width: 2px;
+}
+```
+
+##### 作業8: コンポーネント間隔の圧縮（30分）
+**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
+
+**主な変更**:
+- `.audio-player > * + *` セレクタで統一管理
+- 16px → 12px → 8px に段階的に削減
+  ```css
+  .audio-player > * + * {
+    margin-top: 8px;
+  }
+  ```
+- 各コンポーネントの個別マージンを削除
+
+##### 作業9: シークバー下部の余白削減（未完了、1時間）
+**問題**: シークバー下部の余白が削減されない
+
+**試行**:
+1. `.progress-section` padding: 0 → 効果なし
+2. `.time-display` margin-bottom: 0 → 上部のみ改善
+3. `.progress-bar-container` margin: 4px 0 0 0 → 効果なし
+4. `overflow: visible` → `overflow: hidden` → ツールチップが表示されなくなる
+
+**ユーザー要望**: 「ツールチップはどうせ重ねて表示するので、ツールチップは残したまま空間を削減したかった」
+
+**次回対応**: Portal パターンまたは位置調整で対応予定
 
 ---
 
 ### 技術的決定事項
 
-#### 文マーカーを開始位置に配置
+#### 緑色ベースの維持（グラデーション・紫色不採用）
+**決定**: UI改善プランの当初方針（紫系グラデーション）を完全破棄、緑色 #4CAF50 を維持
+**理由**: ユーザーからの強いフィードバック「緑色のもともとのカラートーンから大きくずらさないでほしい」
+**効果**: シンプルでクリーンなUI、ユーザー満足度向上
 
-**当初の実装**: 各文の終了位置にマーカー表示
+#### 独立ボタン方式の採用
+**決定**: 再生/一時停止のトグル式を廃止、独立ボタン（Play/Pause/Stop）に変更
+**理由**: ユーザー要望「トグルタイプではなく、再生、一時停止、リセット...それぞれのボタンを用意してほしい」
+**実装**: AudioPlayer に stop 関数追加、PlaybackControls に onStop prop 追加
 
-**ユーザーフィードバック**: 「文の先頭に付けたいです」
-
-**変更内容**:
-```typescript
-// 旧: 終了位置
-const cumulativeTime = segmentDurations.slice(0, index + 1).reduce((sum, dur) => sum + dur, 0)
-
-// 新: 開始位置
-const cumulativeTime = segmentDurations.slice(0, index).reduce((sum, dur) => sum + dur, 0)
+#### 折りたたみUIパターンの統一
+**決定**: 速度設定、リピート設定、文リストで同じ折りたたみパターンを使用
+**構造**:
+```tsx
+<div className="header">
+  <h3>タイトル</h3>
+  <button className="dynamic-toggle-button">
+    <span className="current-value">現在値</span>
+    <span className="toggle-icon">▶/▼</span>
+  </button>
+</div>
+{isExpanded && <div className="content">...</div>}
 ```
+**効果**: UI の一貫性、学習コスト削減
 
-**効果**: 文番号が文の開始位置を示すようになり、直感的に
+#### シークバーの四角デザイン
+**決定**: border-radius: 0（角を四角に）
+**理由**: ユーザー要望「プログレスバーは角が丸くなっていると逆に見づらい」
+**実装**: .progress-bar, .progress-fill 両方に適用
+
+#### コンポーネント間隔の統一管理
+**決定**: `.audio-player > * + *` セレクタで全コンポーネントの間隔を統一
+**理由**: 各コンポーネント個別のマージン管理は複雑、CSS優先度問題が発生
+**実装**: margin-top: 8px に統一、各コンポーネントの margin: 0 に設定
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: CSSクラス名のミスマッチ
+**症状**: 再生ボタンにCSSが全く反映されない（色すら変わらない）
+**原因**: コンポーネントは `playback-button` を使用、CSSは `control-button` のみ定義
+**解決**: 不足しているクラス名を全て追加（.playback-button, .speed-preset-button, .sentence-nav-button など）
+**所要時間**: 30分
+
+#### 問題2: セグメントシーク後にボタンが無効化
+**症状**: セグメントにシークすると一時停止ボタンが押せなくなる
+**原因**: switchToSegment が直接 audio.play() を呼ぶが、useAudioPlayback の isPlaying 状態が更新されない
+**解決**: useAudioPlayback.ts に play/pause イベントリスナーを追加して状態同期
+**所要時間**: 45分
+
+#### 問題3: シークバーの高さ不一致
+**症状**: シークバー背景・プログレスバー・文マーカーの高さがずれる
+**原因**: 固定値、height: 100%、flexbox など複数の方法が混在
+**試行錯誤**:
+1. 固定値 8px → ずれる
+2. height: 100% → まだずれる
+3. flexbox → 2倍の高さに見える
+4. **最終解決**: .progress-bar-container を height: 8px 固定、.progress-bar を position: absolute + height: 100%
+**所要時間**: 1時間
+
+#### 問題4: シークバー下部の余白削減（未解決）
+**症状**: overflow: visible → hidden に変更したが、余白が削減されない
+**原因**: ツールチップ用のスペース確保が影響している可能性
+**試行**:
+1. `.progress-section` padding: 0 → 効果なし
+2. `.time-display` margin-bottom: 0 → 上部のみ改善
+3. `.progress-bar-container` margin: 4px 0 0 0 → 効果なし
+4. `overflow: visible` → `overflow: hidden` → ツールチップが表示されなくなる
+**ユーザー要望**: ツールチップはオーバーレイ表示したまま余白を削減したい
+**次回対応**: Portal パターンまたは位置調整で対応予定
+**所要時間**: 1時間（未完了）
 
 ---
 
@@ -118,69 +270,278 @@ const cumulativeTime = segmentDurations.slice(0, index).reduce((sum, dur) => sum
 
 #### 🔴 最優先タスク
 
-**1. シークバークリック機能の修正**（最重要）
+**シークバー下部の余白削減（ツールチップ空間問題）**
 
-**手順**:
-1. ブラウザ開発者ツールを開く（F12）
-2. Elementsパネルでシークバー要素（`.progress-bar`）を右クリック → Inspect
-3. 重なっている要素を確認:
-   - z-indexが高い要素がないか
-   - positionがabsolute/fixed/stickyの要素がないか
-   - 透明な要素（`opacity: 0`や`visibility: hidden`）がないか
-4. 問題の要素を特定したら:
-   - z-indexを下げる
-   - `pointer-events: none`を追加
-   - 不要ならHTML構造から削除
+**問題**: overflow: hidden に変更したが、ツールチップを表示したまま余白を削減する方法が不明
 
-**期待される解決**:
-- コンソールに`[ProgressBar] onClick fired`が表示される
-- シークバークリックでセグメント移動が機能する
-- 同時にツールチップも表示されるようになる
+**次回方針**:
+1. ツールチップを `.progress-section` の外に配置（ポジショニング変更）
+2. React Portal を使って body 直下に配置
+3. `.progress-bar-container` のマージン・パディングを全て 0 に設定し直す
 
-**2. ツールチップ表示の確認**
-
-シークバークリックが修正されれば、自動的にツールチップも機能するはず。
-- マウスオーバーで`[ProgressBar] onMouseMove fired`が表示されるか確認
-- ツールチップに文のプレビューが表示されるか確認
-
-**3. デバッグログの削除**
-
-動作確認後、以下のデバッグログを削除:
-- `ProgressBar.tsx`: `console.log('[ProgressBar] Render:', ...)`
-- `ProgressBar.tsx`: `console.log('[ProgressBar] onClick fired')`
-- `ProgressBar.tsx`: `console.log('[ProgressBar] onMouseMove fired')`
-- その他の詳細ログ
-
----
-
-#### ⚠️ 注意事項
-
-- **文リストは正常動作**: `SentenceList`からのクリックシークは問題なく機能
-- **統合モードは有効**: ログで`isUnifiedMode: true`が確認済み
-- **props伝達は正常**: `segmentDurationsLength: 10`, `sourceSentencesLength: 10`
-- **問題はイベント伝播のみ**: UIロジックは正しい、イベントが発火していない
+**所要時間**: 30分-1時間（見積もり）
 
 #### 📋 次回セッションで参照すべきファイル
 
-**デバッグ時**:
-- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - イベントハンドラー
-- `frontend/src/components/features/AudioPlayer/styles.css` - z-index, position設定
+**ツールチップ問題解決時**:
+- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - ツールチップ構造
+- `frontend/src/components/features/AudioPlayer/styles.css` - .progress-section, .progress-bar-container, .progress-tooltip
+- React Portal のドキュメント（必要に応じて）
 
-**修正後**:
-- 同上ファイルでデバッグログを削除
+#### ⚠️ 注意事項
+
+- **緑色ベースを維持**: グラデーション・紫色は不採用
+- **ツールチップの扱い**: オーバーレイ表示したまま余白を削減する方法を考える
+- **段階的実装**: 一度に大きく変更せず、小さな変更を積み重ねる
 
 ---
 
 ### 成果物リスト
 
-#### 更新ファイル（未完成）
-- [ ] `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - 統合シークバー実装（イベント未動作）
-- [ ] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - ProgressBarへのprops追加
-- [ ] `frontend/src/components/features/AudioPlayer/styles.css` - レスポンシブ対応
-- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - SentenceList統合（動作確認済み）
+#### 新規作成ファイル
+- [x] `frontend/src/components/features/AudioPlayer/components/SpeedSettings.tsx` - 速度設定独立コンポーネント
+
+#### 更新ファイル
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - stop関数追加、レイアウト順序変更
+- [x] `frontend/src/components/features/AudioPlayer/components/PlaybackControls.tsx` - 独立ボタン化、速度設定削除
+- [x] `frontend/src/components/features/AudioPlayer/components/RepeatSettings.tsx` - 折りたたみ機能、動的値表示
+- [x] `frontend/src/components/features/AudioPlayer/components/index.ts` - SpeedSettings エクスポート追加
+- [x] `frontend/src/components/features/AudioPlayer/hooks/useAudioPlayback.ts` - play/pause イベントリスナー追加
+- [x] `frontend/src/components/features/AudioPlayer/styles.css` - コンパクトレイアウト、レスポンシブデザイン、ボタン統一、シークバー修正
+- [x] `frontend/src/components/features/SentenceList/styles.css` - ボタンサイズ統一
+- [x] `docs/sessions/TODO.md` - セッション#19進捗反映、セッション#20タスク更新
+
+#### Git commit（未実施、次回セッションで実施）
+- [ ] コミット予定: セッション#19の変更をコミット
+- [ ] プッシュ予定: ツールチップ問題解決後
+
+---
+
+## セッション #18 - 2025-10-25（✅ 完了）
+
+### 実施内容
+
+#### 1. 統合シークバー機能の完全実装（✅ 完了）
+
+**背景**:
+セッション#17で未完了だった統合シークバー機能に問題発生。クリック・マウスオーバーイベントが全く発火せず。ユーザーから「一番初めのシークバーが一番機能していた」とのフィードバックを受け、コミット履歴を調査。セッション#13時点のシンプルな実装を参考に、ProgressBar.tsxを完全再構築。
+
+**実施した作業**:
+
+##### 問題の原因特定（45分）
+- コミット履歴確認: `git log --oneline -30`
+- セッション#13（9fb650a）時点のAudioPlayer.tsxを確認
+- **発見**: セッション#13では`.progress-bar-container`に直接イベントハンドラー配置
+- **問題**: セッション#17-18で`.progress-track`などの余計なラッパー要素追加
+- **結論**: HTML構造の複雑化がイベント伝播を阻害
+
+##### ProgressBar.tsx完全再実装（15分）
+**シンプルな構造に戻す**:
+```tsx
+// 旧: 複雑な構造
+<div className="progress-bar">
+  <div className="progress-track">  ← 余計
+    <div className="progress-fill" />
+    <div className="progress-thumb" />  ← 余計
+  </div>
+</div>
+
+// 新: シンプルな構造
+<div className="progress-bar-container" onClick={handleSeek}>
+  <div className="progress-bar">
+    <div className="progress-fill" />
+    <div className="sentence-marker" />
+  </div>
+</div>
+```
+
+**再生中セグメントのシーク機能追加**:
+```typescript
+if (i === currentSegmentIndex) {
+  // 同じセグメント → セグメント内シーク
+  const timeWithinSegment = seekTime - segmentStartTime
+  onSeek(timeWithinSegment)
+} else {
+  // 別セグメント → セグメント切り替え
+  onSegmentSeek(i)
+}
+```
+
+##### ツールチップ表示問題の解決（20分）
+**問題**: マウスオーバーは検知されるが、ツールチップが見えない
+
+**デバッグ**:
+- コンソールログ確認: `[ProgressBar] Showing tooltip for sentence 7`は表示
+- → イベント検知は正常、CSS表示の問題
+
+**解決**:
+```css
+.progress-section {
+  overflow: visible;  /* 追加 */
+  padding-top: 40px;  /* ツールチップスペース */
+}
+
+.progress-bar-container {
+  overflow: visible;  /* 追加 */
+}
+```
+
+##### UIクリーンアップ（10分）
+- 重複した文リスト削除（App.tsx側のSentenceList削除）
+- AudioPlayer内の統合版のみ残す
+- 未使用変数削除（isPlaying、handleSentenceSeekRequest）
+- TypeScriptエラー解消
+
+##### コードクリーンアップ（10分）
+- デバッグログ削除（handleMouseMove内のconsole.log）
+- CSS簡略化（不要なクラス削除）
+
+**変更ファイル**:
+- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` (162行、完全再実装)
+- `frontend/src/components/features/AudioPlayer/styles.css` (CSS簡略化、overflow追加)
+- `frontend/src/App.tsx` (SentenceList削除、未使用変数削除)
+
+---
+
+#### 2. UI改善プラン作成（✅ 完了）
+
+**リサーチ**:
+- 最新オーディオプレイヤーのUIトレンド調査（Spotify、YouTube Music、Apple Music、Audible）
+- WebSearch: "modern audio player UI design best practices 2025"
+
+**成果**: 6つのPhaseで構成された詳細プラン作成
+1. **Phase 1**: カラーシステム（グラデーション、ガラスモーフィズム）
+2. **Phase 2**: インタラクティブ要素（プログレスバー、文マーカー、ツールチップ）
+3. **Phase 3**: コントロールボタン刷新
+4. **Phase 4**: 情報表示最適化
+5. **Phase 5**: アニメーション・マイクロインタラクション
+6. **Phase 6**: レスポンシブ最適化
+
+**実装優先順位**:
+- 🔴 最優先: Phase 1 + Phase 2の一部（約1.5時間）
+- 🟡 高優先: Phase 3 + Phase 4（約1時間）
+- 🟢 中優先: Phase 5（約1時間）
+
+---
+
+### 技術的決定事項
+
+#### シークバー構造のシンプル化
+
+**決定**: セッション#13の初期実装を参考に、シンプルな構造に戻す
+
+**理由**:
+- 複雑なHTML構造（progress-track、progress-thumb、sentence-marker-number）がイベント伝播を阻害
+- pointer-events設定が複雑化
+- 初期実装は正常動作していた
+
+**効果**:
+- クリック・マウスオーバーが正常動作
+- CSSがシンプルに（140行 → 60行削減）
+
+#### 再生中セグメントのシーク判定
+
+**実装**:
+クリック位置が現在のセグメントかどうかを判定し、適切な関数を呼び出す
+
+**効果**:
+- 同じセグメント内: 細かいシーク可能
+- 別セグメント: 文の切り替え
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: シークバークリックが機能しない
+
+**症状**: クリックしても反応なし
+
+**原因**: 複雑なHTML構造とpointer-events設定
+
+**解決**: 初期のシンプルな構造に戻す
+
+**所要時間**: 45分（履歴調査30分、実装15分）
+
+#### 問題2: ツールチップが表示されない
+
+**症状**: マウスオーバーは検知されるが見えない
+
+**原因**: CSS overflow設定の不足
+
+**解決**: overflow: visible + padding-top: 40px
+
+**所要時間**: 20分
+
+#### 問題3: TypeScriptエラー
+
+**症状**: 未使用変数エラー
+
+**原因**: SentenceList削除に伴う変数の削除漏れ
+
+**解決**: isPlaying、handleSentenceSeekRequest削除
+
+**所要時間**: 10分
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### 🔴 最優先タスク
+
+**UI改善実装（Phase 1: カラーシステムとビジュアルアップグレード）**
+
+実装内容:
+1. **グラデーションカラーシステム導入**（30分）
+   - CSS変数でグラデーション定義
+   - `--primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%)`
+
+2. **プログレスバーのグラデーション**（20分）
+   - 進行部分にグラデーション適用
+   - ホバー時のエフェクト追加
+
+3. **再生ボタンのグラデーション + 影**（15分）
+   - グラデーション背景
+   - box-shadow追加
+
+4. **ツールチップのガラスモーフィズム**（20分）
+   - 半透明 + backdrop-filter: blur()
+
+5. **文マーカーの丸型 + パルス効果**（15分）
+   - 丸型デザイン
+   - ホバー時のパルスアニメーション
+
+**所要時間**: 約1.5時間
+
+#### 📋 次回セッションで参照すべきファイル
+
+**UI改善実装時**:
+- このセッションで作成したUI改善プラン（上記）
+- `frontend/src/components/features/AudioPlayer/styles.css`
+- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx`
+
+#### ⚠️ 注意事項
+
+- **段階的実装**: Phase 1から順番に、一度に全部実装しない
+- **動作確認**: 各変更後にブラウザで確認
+- **パフォーマンス**: CSS transformを優先（GPU加速）
+- **アクセシビリティ**: 色のコントラスト比維持（WCAG AA準拠）
+
+---
+
+### 成果物リスト
+
+#### 変更ファイル
+- [x] `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - シンプル構造に再実装（162行）
+- [x] `frontend/src/components/features/AudioPlayer/styles.css` - CSS簡略化、overflow設定
+- [x] `frontend/src/App.tsx` - 重複SentenceList削除、未使用変数削除
+- [x] `docs/sessions/TODO.md` - UI改善プラン追加
+- [x] `docs/sessions/SUMMARY.md` - 統計更新（次で実施）
+- [x] `docs/sessions/HANDOVER.md` - セッション#18記録
 
 #### Git commit
-- [ ] コミット未実施（機能未完成のため）
+- [x] コミットハッシュ: `d24816b`
+- [x] 21ファイル変更、2,918行追加、1,091行削除
+- [ ] プッシュ保留（UIブラッシュアップ後に実施）
 
 ---
 

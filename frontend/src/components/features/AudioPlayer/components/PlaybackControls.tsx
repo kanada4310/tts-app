@@ -1,7 +1,7 @@
 /**
  * PlaybackControls Component
  *
- * Renders play/pause button and speed preset buttons.
+ * Renders play/pause/stop buttons only.
  */
 
 import React from 'react'
@@ -9,69 +9,59 @@ import { MESSAGES } from '../../../../constants/messages'
 
 interface PlaybackControlsProps {
   isPlaying: boolean
-  speed: number
   isLoading?: boolean
   onPlay: () => void
   onPause: () => void
-  onSpeedChange: (speed: number) => void
+  onStop: () => void
 }
-
-const SPEED_PRESETS = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
 export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   isPlaying,
-  speed,
   isLoading = false,
   onPlay,
   onPause,
-  onSpeedChange,
+  onStop,
 }) => {
-  const handleTogglePlay = () => {
-    if (isPlaying) {
-      onPause()
-    } else {
-      onPlay()
-    }
-  }
-
   return (
     <div className="playback-controls">
-      {/* Play/Pause Button */}
-      <div className="playback-button-container">
+      {/* Main Control Buttons */}
+      <div className="main-controls">
         <button
-          className="playback-button"
-          onClick={handleTogglePlay}
-          disabled={isLoading}
-          aria-label={isPlaying ? MESSAGES.BUTTON_PAUSE : MESSAGES.BUTTON_PLAY}
+          className="control-button"
+          onClick={onPlay}
+          disabled={isLoading || isPlaying}
+          aria-label={MESSAGES.BUTTON_PLAY}
+          title={MESSAGES.BUTTON_PLAY}
         >
-          {isLoading ? (
-            <span className="loading-spinner">⏳</span>
-          ) : isPlaying ? (
-            <span className="icon-pause">⏸</span>
-          ) : (
-            <span className="icon-play">▶</span>
-          )}
-          <span className="button-text">
-            {isPlaying ? MESSAGES.BUTTON_PAUSE : MESSAGES.BUTTON_PLAY}
-          </span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
         </button>
-      </div>
 
-      {/* Speed Presets */}
-      <div className="speed-controls">
-        <label className="speed-label">速度</label>
-        <div className="speed-presets">
-          {SPEED_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              className={`speed-preset-button ${speed === preset ? 'active' : ''}`}
-              onClick={() => onSpeedChange(preset)}
-              aria-label={`速度 ${preset}x`}
-            >
-              {preset}x
-            </button>
-          ))}
-        </div>
+        <button
+          className="control-button"
+          onClick={onPause}
+          disabled={isLoading || !isPlaying}
+          aria-label={MESSAGES.BUTTON_PAUSE}
+          title={MESSAGES.BUTTON_PAUSE}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        </button>
+
+        <button
+          className="control-button"
+          onClick={onStop}
+          disabled={isLoading}
+          aria-label="停止"
+          title="停止"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="6" width="12" height="12" />
+          </svg>
+        </button>
       </div>
     </div>
   )

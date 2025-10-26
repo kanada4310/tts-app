@@ -141,11 +141,23 @@ export function useAudioPlayback({
       setPlaybackState(prev => ({ ...prev, isLoading: false }))
     }
 
+    const handlePlay = () => {
+      console.log('[useAudioPlayback] Play event detected')
+      setPlaybackState(prev => ({ ...prev, isPlaying: true, isLoading: false }))
+    }
+
+    const handlePause = () => {
+      console.log('[useAudioPlayback] Pause event detected')
+      setPlaybackState(prev => ({ ...prev, isPlaying: false }))
+    }
+
     audio.addEventListener('loadedmetadata', handleLoadedMetadata)
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('waiting', handleWaiting)
     audio.addEventListener('canplay', handleCanPlay)
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
@@ -153,6 +165,8 @@ export function useAudioPlayback({
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('waiting', handleWaiting)
       audio.removeEventListener('canplay', handleCanPlay)
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
     }
   }, [audioRef, onTimeUpdate, onEnded])
 

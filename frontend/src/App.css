@@ -245,3 +245,51 @@
     padding: 8px 16px;
   }
 }
+
+/* Re-upload Section (shown at bottom after audio generation) */
+.reupload-section {
+  margin-top: 32px;
+  padding: 24px;
+  text-align: center;
+}
+
+.reupload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  transition: all 0.2s ease;
+}
+
+.reupload-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.reupload-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.reupload-button svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .reupload-section {
+    padding: 16px;
+  }
+
+  .reupload-button {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+}

@@ -4,32 +4,48 @@
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px 20px;
   border: 1px solid #ddd;
-  border-radius: 12px;
+  border-radius: 8px;
   background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments for smaller desktop/tablet screens */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .sentence-list {
+    max-width: 90%;
+    padding: 14px 18px;
+  }
+}
+
+@media (max-width: 900px) and (min-width: 769px) {
+  .sentence-list {
+    max-width: 95%;
+    padding: 14px 16px;
+  }
 }
 
 .sentence-list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .sentence-list-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 600;
   color: #333;
 }
 
 .header-controls {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -37,27 +53,33 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
   cursor: pointer;
 }
 
 .header-controls input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
 }
 
 .header-controls button {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 12px;
   border: 1px solid #4CAF50;
-  border-radius: 6px;
-  background-color: white;
-  color: #4CAF50;
-  font-size: 14px;
+  border-radius: 4px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  min-height: 28px;
+  min-width: 80px;
 }
 
 .header-controls button:hover {
@@ -69,6 +91,9 @@
   max-height: 500px;
   overflow-y: auto;
   transition: max-height 0.3s ease;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
 }
 
 .sentence-item {
@@ -139,49 +164,61 @@
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .sentence-list {
-    padding: 16px;
+    padding: 14px 16px;
+    margin: 12px auto 0;
   }
 
   .sentence-list-header {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
   }
 
   .sentence-list-header h3 {
-    font-size: 16px;
+    font-size: 14px;
+    flex: 1 1 auto;
   }
 
   .header-controls {
-    width: 100%;
-    justify-content: space-between;
+    flex: 0 0 auto;
+    gap: 8px;
   }
 
   .header-controls label {
-    font-size: 13px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .header-controls input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
   }
 
   .header-controls button {
-    padding: 10px 16px;
-    min-height: 44px; /* Apple HIG standard */
-    font-size: 15px;
+    padding: 8px 12px;
+    min-height: 36px;
+    min-width: 70px;
+    font-size: 13px;
   }
 
   .sentence-list-content {
-    max-height: 400px; /* Slightly lower on mobile */
+    max-height: 350px;
+    margin-top: 10px;
+    padding-top: 10px;
   }
 
   .sentence-item {
-    padding: 16px 12px; /* Larger tap target */
+    padding: 14px 10px;
     min-height: 44px;
   }
 
   .sentence-number {
-    width: 32px;
+    width: 28px;
     font-size: 13px;
   }
 
   .sentence-text {
-    font-size: 15px;
+    font-size: 14px;
   }
 }
