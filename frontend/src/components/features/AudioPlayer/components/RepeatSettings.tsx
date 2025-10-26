@@ -40,6 +40,23 @@ export const RepeatSettings: React.FC<RepeatSettingsProps> = ({
     return option ? option.label : 'なし'
   }
 
+  // Calculate progress percentage for circular indicator (Task 4.2)
+  const getRepeatProgress = (): number => {
+    if (repeatCount === 1 || !getRepeatDisplayText) return 0
+    const displayText = getRepeatDisplayText()
+    if (!displayText) return 0
+
+    // Parse "2/3" or "5/∞" format
+    const match = displayText.match(/(\d+)\/(\d+|∞)/)
+    if (!match) return 0
+
+    const current = parseInt(match[1], 10)
+    const total = match[2] === '∞' ? 0 : parseInt(match[2], 10)
+
+    if (total === 0) return 0 // Infinite mode, no progress percentage
+    return (current / total) * 100
+  }
+
   return (
     <div className="repeat-settings">
       <div className="repeat-settings-header">
@@ -52,7 +69,12 @@ export const RepeatSettings: React.FC<RepeatSettingsProps> = ({
             <span className="current-value">
               {getRepeatLabel()}
               {getRepeatDisplayText && repeatCount > 1 && (
-                <span style={{ marginLeft: '6px', fontSize: '11px', opacity: 0.8 }}>
+                <span
+                  className="repeat-counter-badge"
+                  style={{
+                    '--progress': `${getRepeatProgress()}%`
+                  } as React.CSSProperties}
+                >
                   {getRepeatDisplayText()}
                 </span>
               )}

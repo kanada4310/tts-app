@@ -354,16 +354,40 @@
   font-weight: 500;
 }
 
+/* Task 4.3: Modern Time Display Typography */
 .time-display {
   display: flex;
-  gap: 8px;
+  align-items: baseline;
+  gap: 6px;
   margin-left: auto;
-  margin-bottom: 0;
-  font-size: 14px;
-  color: #666;
+  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
   position: relative;
   z-index: 0; /* Below progress bar */
+}
+
+.time-display > span {
+  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+}
+
+.time-display > span:first-child {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.time-display > span:nth-child(2) {
+  color: #999;
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.time-display > span:last-child {
+  color: #888;
+  font-weight: 500;
 }
 
 /* Progress Section */
@@ -767,19 +791,29 @@
   font-size: 16px;
 }
 
+/* Task 4.1: Large Prominent Sentence Indicator */
 .sentence-indicator {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 14px;
-  color: #666;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  color: #888;
   font-weight: 500;
+  padding: 8px 0;
 }
 
 .sentence-indicator .current-sentence {
-  color: #4CAF50;
-  font-weight: 600;
-  font-size: 16px;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  transition: all var(--transition-normal);
+  text-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .speed-controls {
@@ -1200,7 +1234,17 @@
     font-size: 16px;
   }
 
+  /* Task 4.3: Mobile Time Display */
   .time-display {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .time-display > span:first-child {
+    font-size: 17px;
+  }
+
+  .time-display > span:nth-child(2) {
     font-size: 14px;
   }
 
@@ -1333,12 +1377,14 @@
     font-size: 15px;
   }
 
+  /* Task 4.1: Mobile Sentence Indicator */
   .sentence-indicator {
-    font-size: 15px;
+    font-size: 16px;
+    padding: 12px 0;
   }
 
   .sentence-indicator .current-sentence {
-    font-size: 17px;
+    font-size: 42px; /* Larger for mobile emphasis */
   }
 }
 
@@ -1583,6 +1629,41 @@
 .repeat-settings-header .header-controls .dynamic-toggle-button .current-value {
   font-weight: 700;
   font-size: 14px;
+}
+
+/* Task 4.2: Circular Progress Badge for Repeat Counter */
+.repeat-counter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 6px 10px;
+  min-width: 42px;
+  height: 28px;
+  border-radius: 14px;
+  background: conic-gradient(
+    from -90deg,
+    #4facfe 0deg,
+    #00f2fe calc(var(--progress, 0%) * 3.6deg),
+    #e8e8e8 calc(var(--progress, 0%) * 3.6deg),
+    #e8e8e8 360deg
+  );
+  position: relative;
+  font-size: 11px;
+  font-weight: 700;
+  color: #667eea;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Inner circle background for text */
+.repeat-counter-badge::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 11px;
+  background: white;
+  z-index: 0;
 }
 
 .repeat-settings-header .header-controls .dynamic-toggle-button .toggle-icon {
