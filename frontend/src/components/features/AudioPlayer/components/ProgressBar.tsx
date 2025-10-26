@@ -96,13 +96,17 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const mouseX = e.clientX - rect.left
+    const hoverPosition = (mouseX / rect.width) * 100
+
+    // Update CSS variable for hover cursor preview (Task 2.1)
+    e.currentTarget.style.setProperty('--hover-position', `${hoverPosition}%`)
+
     if (!isUnifiedMode || sourceSentences.length === 0) {
       return
     }
 
-    const rect = e.currentTarget.getBoundingClientRect()
-    const mouseX = e.clientX - rect.left
-    const hoverPosition = (mouseX / rect.width) * 100
     const hoverTime = (mouseX / rect.width) * totalDuration
 
     // Determine tooltip alignment based on position
@@ -266,22 +270,24 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
 
-          {/* Sentence boundary markers */}
+          {/* Sentence boundary markers (Task 2.2: added 'active' class) */}
           {isUnifiedMode &&
             sentenceBoundaries.map((boundary) => (
               <div
                 key={boundary.index}
-                className="sentence-marker"
+                className={`sentence-marker ${
+                  boundary.index === currentSegmentIndex ? 'active' : ''
+                }`}
                 style={{ left: `${boundary.position}%` }}
                 title={`文 ${boundary.index + 1}`}
               />
             ))}
         </div>
 
-        {/* Tooltip */}
+        {/* Tooltip (Task 2.3: added 'show' class for animation) */}
         {tooltipVisible && (
           <div
-            className={`progress-tooltip ${tooltipAlignment === 'left' ? 'align-left' : tooltipAlignment === 'right' ? 'align-right' : ''}`}
+            className={`progress-tooltip show ${tooltipAlignment === 'left' ? 'align-left' : tooltipAlignment === 'right' ? 'align-right' : ''}`}
             style={getTooltipStyle()}
           >
             {tooltipText}

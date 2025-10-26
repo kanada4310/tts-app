@@ -1,5 +1,46 @@
 /* AudioPlayer Component Styles */
 
+/* ========================================
+   Design System: CSS Variables (Phase 2-6)
+   ======================================== */
+
+:root {
+  /* Primary Gradients */
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
+
+  /* Secondary & Accent Gradients */
+  --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --accent-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  --glass-blur: blur(10px);
+
+  /* Neutral Colors */
+  --bg-white: #ffffff;
+  --bg-light: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-light: #e0e0e0;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.4);
+
+  /* Transitions */
+  --transition-fast: 150ms ease-out;
+  --transition-normal: 250ms ease-out;
+  --transition-slow: 350ms ease-out;
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
 .audio-player {
   width: 100%;
   max-width: 600px;
@@ -275,13 +316,24 @@
   overflow: visible; /* Allow tooltip to overflow */
 }
 
+/* ========================================
+   Task 2.1: Progress Bar Enhanced (Hover Effects)
+   ======================================== */
+
 .progress-bar-container {
   position: relative;
   width: 100%;
-  height: 8px; /* Match progress-bar height */
+  height: 8px;
   cursor: pointer;
   margin: 4px 0 0 0;
-  overflow: visible; /* Allow tooltip to overflow */
+  overflow: visible;
+  background: var(--bg-light);
+  border-radius: 999px;
+  transition: transform var(--transition-normal);
+}
+
+.progress-bar-container:hover {
+  transform: scaleY(1.15); /* Slightly expand on hover */
 }
 
 .progress-bar {
@@ -289,9 +341,9 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%; /* Fill container */
-  background-color: #e0e0e0;
-  border-radius: 0; /* Remove rounded corners */
+  height: 100%;
+  background: var(--border-light);
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -299,65 +351,190 @@
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%; /* Use 100% to match parent height */
-  background-color: #4CAF50;
-  transition: width 0.1s linear;
-  border-radius: 0; /* Remove rounded corners */
+  height: 100%;
+  background: var(--accent-gradient); /* Gradient instead of solid */
+  border-radius: 999px;
+  transition: width 100ms linear;
   pointer-events: none;
+  position: relative;
+  overflow: hidden;
+  will-change: width; /* Optimize for animation */
 }
+
+/* Shimmer animation on progress fill */
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Hover cursor preview (small circle) */
+.progress-bar-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: var(--hover-position, 0%);
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  background: var(--primary-gradient);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+  box-shadow: var(--shadow-glow);
+  z-index: 10;
+}
+
+.progress-bar-container:hover::before {
+  opacity: 1;
+}
+
+/* ========================================
+   Task 2.2: Sentence Markers Enhanced (Interactive Display)
+   ======================================== */
 
 .sentence-marker {
   position: absolute;
-  top: 0; /* Align to top of progress bar */
-  bottom: 0; /* Extend to bottom */
-  width: 2px;
-  background-color: #2196F3;
-  opacity: 0.6;
-  transition: opacity 0.3s ease;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(102, 126, 234, 0.3); /* Semi-transparent default */
+  border-radius: 2px;
+  transition: all var(--transition-normal);
+  cursor: pointer;
   pointer-events: none;
+}
+
+.sentence-marker:hover {
+  background: var(--primary-gradient);
+  width: 6px;
+  box-shadow: var(--shadow-glow);
+  animation: pulse 1s infinite;
+}
+
+.sentence-marker.active {
+  background: var(--secondary-gradient); /* Currently playing */
+  width: 6px;
+  box-shadow: 0 0 15px rgba(245, 87, 108, 0.5);
+  animation: pulse-active 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.1); }
+}
+
+@keyframes pulse-active {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .progress-bar-container:hover .sentence-marker {
   opacity: 1;
 }
 
+/* ========================================
+   Task 2.3: Tooltip Enhanced (Glassmorphism + Animation)
+   ======================================== */
+
 .progress-tooltip {
   position: absolute;
   bottom: calc(100% + 12px);
-  transform: translateX(-50%);
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  font-size: 13px;
+  transform: translateX(-50%) translateY(5px);
+  padding: 12px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur); /* Safari */
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
   font-weight: 500;
-  border-radius: 8px;
-  pointer-events: none;
-  z-index: 100;
-  white-space: nowrap;
+  white-space: normal;
   width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: var(--glass-shadow);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity var(--transition-normal),
+              transform var(--transition-normal);
 }
 
+.progress-tooltip.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Glass effect background (subtle gradient) */
+.progress-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.05)
+  );
+  border-radius: 12px;
+  z-index: -1;
+}
+
+/* Arrow pointing down */
 .progress-tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: rgba(255, 255, 255, 0.95);
+  border: 8px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: var(--glass-blur);
 }
 
 /* Tooltip aligned to left edge */
+.progress-tooltip.align-left {
+  left: 0%;
+  transform: none;
+}
+
+.progress-tooltip.align-left.show {
+  transform: translateY(0);
+}
+
 .progress-tooltip.align-left::after {
   left: 20px;
   transform: none;
 }
 
 /* Tooltip aligned to right edge */
+.progress-tooltip.align-right {
+  left: auto;
+  right: 0%;
+  transform: none;
+}
+
+.progress-tooltip.align-right.show {
+  transform: translateY(0);
+}
+
 .progress-tooltip.align-right::after {
   left: auto;
   right: 20px;
@@ -798,51 +975,80 @@
     bottom: 0 !important;
   }
 
-  /* Sentence markers: wider on mobile, aligned to progress bar */
+  /* Sentence markers: wider on mobile, maintain Phase 2 enhancements */
   .sentence-marker {
     width: 8px !important;
     top: 0 !important;
     bottom: 0 !important;
-    height: auto !important; /* Let top/bottom control the height */
-    border-radius: 0 !important; /* Keep square corners */
+    height: auto !important;
+    /* border-radius from Phase 2.2 is maintained */
+  }
+
+  .sentence-marker.active {
+    width: 10px !important; /* Larger on mobile */
   }
 
   .sentence-marker-number {
     top: auto;
-    bottom: -28px; /* Position below seekbar, compact */
-    font-size: 12px; /* Compact size */
+    bottom: -28px;
+    font-size: 12px;
   }
 
-  /* Mobile-specific tooltip: larger and positioned below seekbar */
+  /* Mobile: Tooltip with Glassmorphism (positioned below seekbar) */
   .progress-tooltip {
     bottom: auto;
     top: 100%;
+    transform: translateX(-50%) translateY(-5px); /* Slide down on show */
     margin-top: 12px;
-    margin-bottom: 0;
     padding: 12px 16px;
-    font-size: 14px;
+    font-size: 15px;
     width: 280px;
     max-width: 90%;
     white-space: normal;
     word-wrap: break-word;
-    background: rgba(255, 255, 255, 0.95);
-    color: #333;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    box-shadow: var(--glass-shadow);
     z-index: 1000;
+  }
+
+  .progress-tooltip.show {
+    transform: translateX(-50%) translateY(0); /* Slide down to position */
   }
 
   .progress-tooltip::after {
     top: auto;
     bottom: 100%;
     border-top-color: transparent;
-    border-bottom-color: rgba(255, 255, 255, 0.95);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
   }
 
-  /* Mobile: Tooltip arrow alignment */
+  /* Mobile: Tooltip alignment adjustments */
+  .progress-tooltip.align-left {
+    left: 0%;
+    transform: translateY(-5px);
+  }
+
+  .progress-tooltip.align-left.show {
+    transform: translateY(0);
+  }
+
   .progress-tooltip.align-left::after {
     left: 20px;
     transform: none;
+  }
+
+  .progress-tooltip.align-right {
+    left: auto;
+    right: 0%;
+    transform: translateY(-5px);
+  }
+
+  .progress-tooltip.align-right.show {
+    transform: translateY(0);
   }
 
   .progress-tooltip.align-right::after {
