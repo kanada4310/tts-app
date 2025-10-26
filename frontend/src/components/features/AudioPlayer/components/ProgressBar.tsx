@@ -32,6 +32,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const [tooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState(0)
   const [tooltipText, setTooltipText] = useState('')
+  const [tooltipAlignment, setTooltipAlignment] = useState<'left' | 'right' | 'center'>('center')
+  const [lastTouchSegmentIndex, setLastTouchSegmentIndex] = useState<number | null>(null)
 
   // Calculate total duration and current position across all segments
   const isUnifiedMode = isSegmentMode && segmentDurations.length > 0
@@ -103,6 +105,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     const hoverPosition = (mouseX / rect.width) * 100
     const hoverTime = (mouseX / rect.width) * totalDuration
 
+    // Determine tooltip alignment based on position
+    let alignment: 'left' | 'right' | 'center' = 'center'
+    if (hoverPosition < 20) {
+      alignment = 'left'
+    } else if (hoverPosition > 80) {
+      alignment = 'right'
+    }
+
     // Find which sentence this corresponds to
     let accumulatedTime = 0
     for (let i = 0; i < segmentDurations.length; i++) {
@@ -113,6 +123,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         setTooltipVisible(true)
         setTooltipPosition(hoverPosition)
         setTooltipText(preview)
+        setTooltipAlignment(alignment)
         return
       }
     }
@@ -122,10 +133,117 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     setTooltipVisible(false)
   }
 
+  // Touch event handlers for mobile/tablet
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isUnifiedMode || sourceSentences.length === 0) {
+      return
+    }
+
+    const touch = e.touches[0]
+    const rect = e.currentTarget.getBoundingClientRect()
+    const touchX = touch.clientX - rect.left
+    const hoverPosition = (touchX / rect.width) * 100
+    const hoverTime = (touchX / rect.width) * totalDuration
+
+    // Determine tooltip alignment based on position
+    let alignment: 'left' | 'right' | 'center' = 'center'
+    if (hoverPosition < 20) {
+      alignment = 'left'
+    } else if (hoverPosition > 80) {
+      alignment = 'right'
+    }
+
+    // Find which sentence this corresponds to
+    let accumulatedTime = 0
+    for (let i = 0; i < segmentDurations.length; i++) {
+      accumulatedTime += segmentDurations[i]
+      if (hoverTime <= accumulatedTime) {
+        const sentence = sourceSentences[i] || ''
+        const preview = sentence.length > 50 ? sentence.substring(0, 50) + '...' : sentence
+        setTooltipVisible(true)
+        setTooltipPosition(hoverPosition)
+        setTooltipText(preview)
+        setTooltipAlignment(alignment)
+        setLastTouchSegmentIndex(i) // Remember the segment
+        return
+      }
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isUnifiedMode || sourceSentences.length === 0) {
+      return
+    }
+
+    const touch = e.touches[0]
+    const rect = e.currentTarget.getBoundingClientRect()
+    const touchX = touch.clientX - rect.left
+    const hoverPosition = (touchX / rect.width) * 100
+    const hoverTime = (touchX / rect.width) * totalDuration
+
+    // Determine tooltip alignment based on position
+    let alignment: 'left' | 'right' | 'center' = 'center'
+    if (hoverPosition < 20) {
+      alignment = 'left'
+    } else if (hoverPosition > 80) {
+      alignment = 'right'
+    }
+
+    // Find which sentence this corresponds to
+    let accumulatedTime = 0
+    for (let i = 0; i < segmentDurations.length; i++) {
+      accumulatedTime += segmentDurations[i]
+      if (hoverTime <= accumulatedTime) {
+        const sentence = sourceSentences[i] || ''
+        const preview = sentence.length > 50 ? sentence.substring(0, 50) + '...' : sentence
+        setTooltipVisible(true)
+        setTooltipPosition(hoverPosition)
+        setTooltipText(preview)
+        setTooltipAlignment(alignment)
+        setLastTouchSegmentIndex(i) // Update the segment
+        return
+      }
+    }
+  }
+
+  const handleTouchEnd = () => {
+    setTooltipVisible(false)
+
+    // Seek to the beginning of the touched segment
+    if (lastTouchSegmentIndex !== null && onSegmentSeek) {
+      onSegmentSeek(lastTouchSegmentIndex)
+      setLastTouchSegmentIndex(null)
+    }
+  }
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Calculate tooltip position to prevent overflow
+  const getTooltipStyle = (): React.CSSProperties => {
+    // If near the left edge (< 20%), align to left
+    if (tooltipPosition < 20) {
+      return {
+        left: '0%',
+        transform: 'none',
+      }
+    }
+    // If near the right edge (> 80%), align to right
+    if (tooltipPosition > 80) {
+      return {
+        left: 'auto',
+        right: '0%',
+        transform: 'none',
+      }
+    }
+    // Otherwise, center the tooltip
+    return {
+      left: `${tooltipPosition}%`,
+      transform: 'translateX(-50%)',
+    }
   }
 
   return (
@@ -141,6 +259,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         onClick={handleSeek}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="progress-bar">
           <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
@@ -160,8 +281,8 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         {/* Tooltip */}
         {tooltipVisible && (
           <div
-            className="progress-tooltip"
-            style={{ left: `${tooltipPosition}%` }}
+            className={`progress-tooltip ${tooltipAlignment === 'left' ? 'align-left' : tooltipAlignment === 'right' ? 'align-right' : ''}`}
+            style={getTooltipStyle()}
           >
             {tooltipText}
           </div>

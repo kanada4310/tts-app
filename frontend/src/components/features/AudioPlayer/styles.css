@@ -32,6 +32,62 @@
   }
 }
 
+/* Tablet (769px-1440px): Touch-optimized (includes iPad Pro portrait & landscape) */
+@media (max-width: 1440px) and (min-width: 769px) {
+  /* Larger touch targets for buttons */
+  .control-button {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    width: 48px;
+    height: 48px;
+  }
+
+  .control-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Larger seekbar for touch */
+  .progress-bar-container {
+    height: 44px !important; /* Touch-optimized height */
+    margin: 8px 0;
+  }
+
+  .progress-bar {
+    height: 100% !important;
+  }
+
+  .progress-fill {
+    height: 100% !important;
+  }
+
+  /* Larger sentence markers */
+  .sentence-marker {
+    width: 4px !important;
+    /* height automatically matches seekbar via top: 0; bottom: 0; */
+  }
+
+  /* Larger preset buttons */
+  .preset-button {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+  }
+
+  /* Larger navigation buttons */
+  .nav-button {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+  }
+
+  /* Larger toggle buttons */
+  .dynamic-toggle-button {
+    min-height: 44px !important;
+    padding: 10px 16px !important;
+  }
+}
+
 /* PC/Tablet: Custom spacing for specific component pairs */
 @media (min-width: 769px) {
   /* Seekbar to Skip buttons: slightly wider */
@@ -270,18 +326,19 @@
   bottom: calc(100% + 12px);
   transform: translateX(-50%);
   padding: 10px 16px;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
   font-size: 13px;
   font-weight: 500;
   border-radius: 8px;
   pointer-events: none;
   z-index: 100;
   white-space: nowrap;
-  max-width: 300px;
+  width: 240px;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .progress-tooltip::after {
@@ -291,7 +348,20 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: rgba(0, 0, 0, 0.9);
+  border-top-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Tooltip aligned to left edge */
+.progress-tooltip.align-left::after {
+  left: 20px;
+  transform: none;
+}
+
+/* Tooltip aligned to right edge */
+.progress-tooltip.align-right::after {
+  left: auto;
+  right: 20px;
+  transform: none;
 }
 
 .speed-control {
@@ -751,11 +821,14 @@
     margin-bottom: 0;
     padding: 12px 16px;
     font-size: 14px;
-    max-width: 80%;
+    width: 280px;
+    max-width: 90%;
     white-space: normal;
     word-wrap: break-word;
-    background-color: rgba(0, 0, 0, 0.9);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     z-index: 1000;
   }
 
@@ -763,7 +836,19 @@
     top: auto;
     bottom: 100%;
     border-top-color: transparent;
-    border-bottom-color: rgba(0, 0, 0, 0.9);
+    border-bottom-color: rgba(255, 255, 255, 0.95);
+  }
+
+  /* Mobile: Tooltip arrow alignment */
+  .progress-tooltip.align-left::after {
+    left: 20px;
+    transform: none;
+  }
+
+  .progress-tooltip.align-right::after {
+    left: auto;
+    right: 20px;
+    transform: none;
   }
 
   .speed-presets,

@@ -27,7 +27,7 @@ export const SentenceList: React.FC<SentenceListProps> = ({
   onSentenceClick,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const [autoScroll, setAutoScroll] = useState(true)
+  const [autoScroll, setAutoScroll] = useState(false)
   const sentenceListRef = useRef<HTMLDivElement>(null)
 
   // Calculate visible range: current sentence +/- 3 sentences when playing
