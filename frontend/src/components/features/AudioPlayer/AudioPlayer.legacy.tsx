@@ -36,8 +36,8 @@ export function AudioPlayer({
   sourceText,
   sourceSentences,
   sentenceTimings,
-  audioSegments,
-  segmentDurations,
+  // audioSegments, // Unused in legacy version
+  // segmentDurations, // Unused in legacy version
   externalSentenceIndex,
   onPlaybackComplete,
   onSentenceChange,
