@@ -24,10 +24,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 }) => {
   return (
     <div className="playback-controls">
-      {/* Main Control Buttons */}
+      {/* Main Control Buttons (Task 3.1: Added primary/secondary classes) */}
       <div className="main-controls">
         <button
-          className="control-button"
+          className="control-button primary"
           onClick={onPlay}
           disabled={isLoading || isPlaying}
           aria-label={MESSAGES.BUTTON_PLAY}
@@ -39,7 +39,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         </button>
 
         <button
-          className="control-button"
+          className="control-button primary"
           onClick={onPause}
           disabled={isLoading || !isPlaying}
           aria-label={MESSAGES.BUTTON_PAUSE}
@@ -52,7 +52,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         </button>
 
         <button
-          className="control-button"
+          className="control-button secondary"
           onClick={onStop}
           disabled={isLoading}
           aria-label="停止"
