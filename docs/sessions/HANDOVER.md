@@ -5,315 +5,156 @@
 
 ---
 
-## セッション #19 - 2025-10-26（⏳ 進行中、約80%完了）
+## セッション #19 - 2025-10-26（✅ 完了）
 
 ### 実施内容
 
-#### 1. UI改善プラン Phase 1実装（コンパクトレイアウト＆レスポンシブデザイン）
+このセッションでは、レスポンシブデザインの完全対応とタッチUI最適化を実施しました。
 
-**背景**:
-セッション#18で作成したUI改善プラン（グラデーション、紫色ベース）を実装開始したが、ユーザーから即座に強い否定的フィードバックを受ける。「全然反映されてないですよ！緑色のもともとのカラートーンから大きくずらさないでほしい」「再生ボタンは色すら反映されていません」。
+#### 1. レイアウト最適化とバグ修正
 
-方針を完全変更し、緑色ベース（#4CAF50）を維持したまま、コンパクトでクリーンなレイアウトを目指す新しいPhase 1を実装。
+##### シークバー下部余白削減（モバイル対応）
+- **問題**: PC版では余白削減が効いているが、モバイル版では効いていない
+- **原因**: モバイル版のmargin-bottom: 60pxが残っていた
+- **解決**: モバイル版を60px → 30pxに削減、文番号位置調整
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-**実施した作業**:
+##### PC版コンポーネント間余白最適化
+- **問題**: 前回のセッションで余白を削りすぎて窮屈
+- **解決**: 基本余白を8px → 16pxに拡大、個別コンポーネント間に適切な余白（16-24px）を設定
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-##### 作業1: PlaybackControlsのリファクタリング（45分）
-**問題**: CSSが全く反映されない
-**原因**: クラス名のミスマッチ（コンポーネント: `playback-button`、CSS: `control-button` のみ定義）
-**解決**:
-- 不足しているCSSクラスを全て追加
-- トグル式から独立ボタン（Play/Pause/Stop）に変更
-- 速度設定をPlaybackControlsから削除（SpeedSettingsに分離）
+##### 画像アップロードUIリファクタリング
+- **変更**: TTS生成後はAudioPlayerを最上部に配置、再アップロードボタンを最下部に配置
+- **追加機能**: 再アップロードボタンで全状態をリセット
+- **変更ファイル**: `frontend/src/App.tsx`, `frontend/src/App.css`
 
-**変更ファイル**:
-- `frontend/src/components/features/AudioPlayer/components/PlaybackControls.tsx`
-  - stop機能追加（onStop prop）
-  - 独立した3つのボタンに変更
-  ```tsx
-  <button onClick={onPlay} disabled={isLoading || isPlaying}>Play</button>
-  <button onClick={onPause} disabled={isLoading || !isPlaying}>Pause</button>
-  <button onClick={onStop} disabled={isLoading}>Stop</button>
-  ```
+##### OCR後のテキスト編集がTTSに反映されない問題修正
+- **原因**: TextEditorにonTextChange propが渡されていなかった
+- **解決**: handleTextChange関数を追加し、TextEditorに渡す
+- **変更ファイル**: `frontend/src/App.tsx`
 
-##### 作業2: SpeedSettings独立コンポーネント作成（30分）
-**目的**: 速度設定をPlaybackControlsから分離、折りたたみ機能追加
+##### 文解析精度の問題修正
+- **問題**: OCR直後は高精度だが、テキスト編集後の再解析精度が極度に悪い
+- **原因**: OCR時はGemini APIの詳細ルール、編集後は単純な正規表現を使用
+- **解決**: originalOcrSentencesを保存し、テキスト未変更時は高精度なOCR結果を使用。編集時は改良された文解析（lookahead/lookbehind、略語検出）を使用
+- **変更ファイル**: `frontend/src/App.tsx`
 
-**新規作成ファイル**: `frontend/src/components/features/AudioPlayer/components/SpeedSettings.tsx`
+##### モバイル版コンポーネント間余白最適化
+- **変更**: PC版と同様に個別コンポーネント間余白を設定（12-20px）
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-**主な機能**:
-- 折りたたみ機能（useState(false)、デフォルト折りたたみ）
-- 動的値表示ボタン（現在の速度を薄緑背景ボタン内に表示）
-  ```tsx
-  <button className="dynamic-toggle-button">
-    <span className="current-value">{speed}x</span>
-    <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
-  </button>
-  ```
+#### 2. タブレット・モバイル最適化
 
-##### 作業3: RepeatSettingsリファクタリング（30分）
-**変更**: 折りたたみ機能追加、動的値表示ボタン実装
+##### タブレット対応範囲拡張
+- **変更**: 769px-1024px → 769px-1440pxに拡張（iPad Pro横向き対応）
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-**変更ファイル**: `frontend/src/components/features/AudioPlayer/components/RepeatSettings.tsx`
+##### タッチ操作最適化（Apple HIG準拠）
+- **コントロールボタン**: 48x48px
+- **その他ボタン**: 最小44px
+- **シークバー**: 44px（タブレット・モバイル）
+- **文マーカー**: シークバー高さに自動追従（top: 0; bottom: 0;）
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
 
-**主な変更**:
-- `isRepeatExpanded` state追加
-- `getRepeatLabel()` 関数実装（現在のリピート回数をラベル化）
-- 動的値表示ボタン実装
-  ```tsx
-  <button className="dynamic-toggle-button">
-    <span className="current-value">
-      {getRepeatLabel()}
-      {getRepeatDisplayText && repeatCount > 1 && (
-        <span>{getRepeatDisplayText()}</span>
-      )}
-    </span>
-    <span className="toggle-icon">{isExpanded ? '▼' : '▶'}</span>
-  </button>
-  ```
+##### タッチデバイス向けツールチップ機能
+- **機能**: 長押し・スライド時にセグメントのツールチップ表示、指を離すとセグメント先頭から再生
+- **実装**: handleTouchStart, handleTouchMove, handleTouchEnd追加
+- **変更ファイル**: `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx`
 
-##### 作業4: 状態同期の修正（45分）
-**問題**: セグメントにシークすると一時停止ボタンが無効化される
-**原因**: switchToSegment が直接 audio.play() を呼ぶが、useAudioPlayback の isPlaying 状態が更新されない
+##### ツールチップ改善
+- **デザイン**: 半透明白背景（rgba(255,255,255,0.95)）、黒文字（#333）
+- **レイアウト**: 一定幅（PC: 240px、モバイル: 280px）
+- **画面端対応**: 左右20%で自動調整（はみ出し防止）
+- **変更ファイル**:
+  - `frontend/src/components/features/AudioPlayer/styles.css`
+  - `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx`
 
-**解決**: useAudioPlayback.ts に play/pause イベントリスナー追加
+#### 3. UX改善
 
-**変更ファイル**: `frontend/src/components/features/AudioPlayer/hooks/useAudioPlayback.ts`
-```typescript
-const handlePlay = () => {
-  console.log('[useAudioPlayback] Play event detected')
-  setPlaybackState(prev => ({ ...prev, isPlaying: true, isLoading: false }))
-}
-
-const handlePause = () => {
-  console.log('[useAudioPlayback] Pause event detected')
-  setPlaybackState(prev => ({ ...prev, isPlaying: false }))
-}
-
-audio.addEventListener('play', handlePlay)
-audio.addEventListener('pause', handlePause)
-```
-
-##### 作業5: レスポンシブデザイン実装（30分）
-**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-
-**主な変更**:
-- 900px, 1024px でのブレークポイント追加
-  ```css
-  @media (max-width: 1024px) and (min-width: 769px) {
-    .audio-player { max-width: 90%; padding: 20px; }
-  }
-  @media (max-width: 900px) and (min-width: 769px) {
-    .audio-player { max-width: 95%; padding: 18px; }
-  }
-  ```
-
-##### 作業6: ボタンサイズの統一（20分）
-**変更ファイル**:
-- `frontend/src/components/features/AudioPlayer/styles.css`
-- `frontend/src/components/features/SentenceList/styles.css`
-
-**主な変更**:
-- 全てのトグルボタンを統一サイズに
-  ```css
-  .dynamic-toggle-button {
-    min-height: 28px;
-    min-width: 80px;
-    background-color: #e8f5e9; /* 薄緑 */
-    color: #2e7d32;
-  }
-  ```
-
-##### 作業7: シークバーの四角デザイン＆高さ統一（1時間）
-**問題**: シークバー背景・プログレスバー・文マーカーの高さが一致しない
-
-**試行錯誤**:
-1. 固定値 8px → ずれる
-2. height: 100% → まだずれる
-3. flexbox（align-items: center） → 2倍の高さに見える
-4. **最終解決**: .progress-bar-container を height: 8px 固定、.progress-bar を position: absolute + height: 100%
-
-**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-```css
-.progress-bar-container {
-  position: relative;
-  width: 100%;
-  height: 8px; /* 固定 */
-  cursor: pointer;
-  margin: 4px 0 0 0;
-}
-
-.progress-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%; /* 親要素に合わせる */
-  background-color: #e0e0e0;
-  border-radius: 0; /* 四角 */
-}
-
-.sentence-marker {
-  position: absolute;
-  top: 0;
-  bottom: 0; /* 上下端を揃える */
-  width: 2px;
-}
-```
-
-##### 作業8: コンポーネント間隔の圧縮（30分）
-**変更ファイル**: `frontend/src/components/features/AudioPlayer/styles.css`
-
-**主な変更**:
-- `.audio-player > * + *` セレクタで統一管理
-- 16px → 12px → 8px に段階的に削減
-  ```css
-  .audio-player > * + * {
-    margin-top: 8px;
-  }
-  ```
-- 各コンポーネントの個別マージンを削除
-
-##### 作業9: シークバー下部の余白削減（未完了、1時間）
-**問題**: シークバー下部の余白が削減されない
-
-**試行**:
-1. `.progress-section` padding: 0 → 効果なし
-2. `.time-display` margin-bottom: 0 → 上部のみ改善
-3. `.progress-bar-container` margin: 4px 0 0 0 → 効果なし
-4. `overflow: visible` → `overflow: hidden` → ツールチップが表示されなくなる
-
-**ユーザー要望**: 「ツールチップはどうせ重ねて表示するので、ツールチップは残したまま空間を削減したかった」
-
-**次回対応**: Portal パターンまたは位置調整で対応予定
+##### 文リスト自動スクロールデフォルトオフ
+- **変更**: useState(true) → useState(false)
+- **理由**: ユーザーが手動スクロールする場合を考慮
+- **変更ファイル**: `frontend/src/components/features/SentenceList/SentenceList.tsx`
 
 ---
 
 ### 技術的決定事項
 
-#### 緑色ベースの維持（グラデーション・紫色不採用）
-**決定**: UI改善プランの当初方針（紫系グラデーション）を完全破棄、緑色 #4CAF50 を維持
-**理由**: ユーザーからの強いフィードバック「緑色のもともとのカラートーンから大きくずらさないでほしい」
-**効果**: シンプルでクリーンなUI、ユーザー満足度向上
+#### タブレット対応範囲を1440pxまで拡張
+**決定**: タブレット用メディアクエリを769px-1440pxに設定
+**理由**: iPad Pro 12.9インチの横向き（1366px幅）に対応
+**効果**: 全てのiPadで最適なタッチ操作体験を提供
 
-#### 独立ボタン方式の採用
-**決定**: 再生/一時停止のトグル式を廃止、独立ボタン（Play/Pause/Stop）に変更
-**理由**: ユーザー要望「トグルタイプではなく、再生、一時停止、リセット...それぞれのボタンを用意してほしい」
-**実装**: AudioPlayer に stop 関数追加、PlaybackControls に onStop prop 追加
+#### タッチターゲットサイズをApple HIG準拠に
+**決定**: 44-48pxのタッチターゲットサイズを採用
+**理由**: Apple Human Interface Guidelines推奨値
+**効果**: タッチ操作の正確性向上、誤タップ削減
 
-#### 折りたたみUIパターンの統一
-**決定**: 速度設定、リピート設定、文リストで同じ折りたたみパターンを使用
-**構造**:
-```tsx
-<div className="header">
-  <h3>タイトル</h3>
-  <button className="dynamic-toggle-button">
-    <span className="current-value">現在値</span>
-    <span className="toggle-icon">▶/▼</span>
-  </button>
-</div>
-{isExpanded && <div className="content">...</div>}
-```
-**効果**: UI の一貫性、学習コスト削減
+#### ツールチップの画面端判定を20%/80%に設定
+**決定**: 左端（20%未満）、右端（80%超）で自動位置調整
+**理由**: 一定幅240pxのツールチップが画面からはみ出るのを防ぐ
+**効果**: 全ての位置でツールチップが完全に表示される
 
-#### シークバーの四角デザイン
-**決定**: border-radius: 0（角を四角に）
-**理由**: ユーザー要望「プログレスバーは角が丸くなっていると逆に見づらい」
-**実装**: .progress-bar, .progress-fill 両方に適用
-
-#### コンポーネント間隔の統一管理
-**決定**: `.audio-player > * + *` セレクタで全コンポーネントの間隔を統一
-**理由**: 各コンポーネント個別のマージン管理は複雑、CSS優先度問題が発生
-**実装**: margin-top: 8px に統一、各コンポーネントの margin: 0 に設定
+#### 文マーカーの高さ自動追従
+**決定**: top: 0; bottom: 0; でシークバー高さに自動追従
+**理由**: PC（8px）、タブレット（44px）、モバイル（44px）で異なる高さに対応
+**効果**: コード保守性向上、一貫した表示
 
 ---
 
 ### 発生した問題と解決
 
-#### 問題1: CSSクラス名のミスマッチ
-**症状**: 再生ボタンにCSSが全く反映されない（色すら変わらない）
-**原因**: コンポーネントは `playback-button` を使用、CSSは `control-button` のみ定義
-**解決**: 不足しているクラス名を全て追加（.playback-button, .speed-preset-button, .sentence-nav-button など）
+#### 問題1: モバイル版でシークバー下部余白が削減されない
+**原因**: モバイル版の`.progress-bar-container`にmargin-bottom: 60pxが残っていた
+**解決**: 60px → 30pxに削減
+**所要時間**: 15分
+
+#### 問題2: PC版コンポーネント間余白が狭すぎる
+**原因**: 前回のセッションで8pxに削減しすぎた
+**解決**: 基本16px、個別16-24pxに拡大
+**所要時間**: 20分
+
+#### 問題3: OCR後のテキスト編集がTTSに反映されない
+**原因**: TextEditorにonTextChange propが渡されていなかった
+**解決**: handleTextChange追加
+**所要時間**: 15分
+
+#### 問題4: 文解析精度が極度に悪い
+**原因**: OCR時はGemini API、編集後は単純な正規表現
+**解決**: originalOcrSentences保存、改良された文解析実装
 **所要時間**: 30分
-
-#### 問題2: セグメントシーク後にボタンが無効化
-**症状**: セグメントにシークすると一時停止ボタンが押せなくなる
-**原因**: switchToSegment が直接 audio.play() を呼ぶが、useAudioPlayback の isPlaying 状態が更新されない
-**解決**: useAudioPlayback.ts に play/pause イベントリスナーを追加して状態同期
-**所要時間**: 45分
-
-#### 問題3: シークバーの高さ不一致
-**症状**: シークバー背景・プログレスバー・文マーカーの高さがずれる
-**原因**: 固定値、height: 100%、flexbox など複数の方法が混在
-**試行錯誤**:
-1. 固定値 8px → ずれる
-2. height: 100% → まだずれる
-3. flexbox → 2倍の高さに見える
-4. **最終解決**: .progress-bar-container を height: 8px 固定、.progress-bar を position: absolute + height: 100%
-**所要時間**: 1時間
-
-#### 問題4: シークバー下部の余白削減（未解決）
-**症状**: overflow: visible → hidden に変更したが、余白が削減されない
-**原因**: ツールチップ用のスペース確保が影響している可能性
-**試行**:
-1. `.progress-section` padding: 0 → 効果なし
-2. `.time-display` margin-bottom: 0 → 上部のみ改善
-3. `.progress-bar-container` margin: 4px 0 0 0 → 効果なし
-4. `overflow: visible` → `overflow: hidden` → ツールチップが表示されなくなる
-**ユーザー要望**: ツールチップはオーバーレイ表示したまま余白を削減したい
-**次回対応**: Portal パターンまたは位置調整で対応予定
-**所要時間**: 1時間（未完了）
 
 ---
 
 ### 次セッションへの引き継ぎ事項
 
-#### 🔴 最優先タスク
+#### すぐに着手すべきこと
 
-**シークバー下部の余白削減（ツールチップ空間問題）**
+特になし（全ての計画タスクが完了）
 
-**問題**: overflow: hidden に変更したが、ツールチップを表示したまま余白を削減する方法が不明
+#### 注意事項
 
-**次回方針**:
-1. ツールチップを `.progress-section` の外に配置（ポジショニング変更）
-2. React Portal を使って body 直下に配置
-3. `.progress-bar-container` のマージン・パディングを全て 0 に設定し直す
-
-**所要時間**: 30分-1時間（見積もり）
-
-#### 📋 次回セッションで参照すべきファイル
-
-**ツールチップ問題解決時**:
-- `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - ツールチップ構造
-- `frontend/src/components/features/AudioPlayer/styles.css` - .progress-section, .progress-bar-container, .progress-tooltip
-- React Portal のドキュメント（必要に応じて）
-
-#### ⚠️ 注意事項
-
-- **緑色ベースを維持**: グラデーション・紫色は不採用
-- **ツールチップの扱い**: オーバーレイ表示したまま余白を削減する方法を考える
-- **段階的実装**: 一度に大きく変更せず、小さな変更を積み重ねる
+- **レスポンシブデザイン**: タブレット横向きも考慮済み
+- **タッチターゲット**: Apple HIG準拠（44-48px）
+- **ツールチップ**: 画面端はみ出し防止実装済み
 
 ---
 
 ### 成果物リスト
 
-#### 新規作成ファイル
-- [x] `frontend/src/components/features/AudioPlayer/components/SpeedSettings.tsx` - 速度設定独立コンポーネント
-
 #### 更新ファイル
-- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - stop関数追加、レイアウト順序変更
-- [x] `frontend/src/components/features/AudioPlayer/components/PlaybackControls.tsx` - 独立ボタン化、速度設定削除
-- [x] `frontend/src/components/features/AudioPlayer/components/RepeatSettings.tsx` - 折りたたみ機能、動的値表示
-- [x] `frontend/src/components/features/AudioPlayer/components/index.ts` - SpeedSettings エクスポート追加
-- [x] `frontend/src/components/features/AudioPlayer/hooks/useAudioPlayback.ts` - play/pause イベントリスナー追加
-- [x] `frontend/src/components/features/AudioPlayer/styles.css` - コンパクトレイアウト、レスポンシブデザイン、ボタン統一、シークバー修正
-- [x] `frontend/src/components/features/SentenceList/styles.css` - ボタンサイズ統一
-- [x] `docs/sessions/TODO.md` - セッション#19進捗反映、セッション#20タスク更新
+- [x] `frontend/src/components/features/AudioPlayer/styles.css` - レスポンシブデザイン、タッチ最適化、ツールチップ改善
+- [x] `frontend/src/App.tsx` - レイアウトリファクタリング、テキスト編集バグ修正、文解析精度改善
+- [x] `frontend/src/App.css` - 再アップロードボタンスタイル
+- [x] `frontend/src/components/features/AudioPlayer/components/ProgressBar.tsx` - タッチイベント、ツールチップ位置調整
+- [x] `frontend/src/components/features/SentenceList/SentenceList.tsx` - 自動スクロールデフォルトオフ
 
-#### Git commit（未実施、次回セッションで実施）
-- [ ] コミット予定: セッション#19の変更をコミット
-- [ ] プッシュ予定: ツールチップ問題解決後
+#### Git commit
+- [x] コミット `0fdfd86`: UI改善プラン Phase 1完了 + レイアウト最適化
+- [x] コミット `fd628c8`: OCR後のテキスト編集がTTSに反映されない問題を修正
+- [x] コミット `fc493ea`: モバイル版コンポーネント間余白の最適化
+- [x] コミット `82ff6a8`: レスポンシブデザイン完全対応とタッチUI最適化（最終まとめ）
 
 ---
 
