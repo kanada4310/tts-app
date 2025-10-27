@@ -41,6 +41,56 @@
   --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* ========================================
+   Phase 5: Fluid Animations
+   ======================================== */
+
+/* Task 5.1: Play/Pause Button Morphing Animation */
+@keyframes button-morph {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Task 5.2: Sentence Switching Fade */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Smooth state transitions */
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
 .audio-player {
   width: 100%;
   max-width: 600px;
@@ -170,9 +220,9 @@
 .speed-indicator {
   font-size: 14px;
   font-weight: 600;
-  color: #4CAF50;
+  color: #667eea;
   padding: 4px 12px;
-  background-color: #e8f5e9;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
   border-radius: 12px;
 }
 
@@ -228,7 +278,7 @@
   height: 48px;
   border: none;
   border-radius: 50%;
-  background-color: #4CAF50; /* Default green (fallback) */
+  background: var(--primary-gradient); /* Modern gradient (fallback) */
   color: white;
   cursor: pointer;
   display: flex;
@@ -239,7 +289,7 @@
   overflow: hidden;
 }
 
-/* Primary Button (Play/Pause) */
+/* Primary Button (Play/Pause) - Task 5.1: Added morphing animation */
 .control-button.primary {
   background: var(--primary-gradient);
   border: none;
@@ -274,6 +324,7 @@
 }
 
 .control-button.primary:active:not(:disabled) {
+  animation: button-morph 300ms var(--easing-smooth);
   transform: scale(0.95);
 }
 
@@ -317,7 +368,7 @@
   height: 56px;
   border: none;
   border-radius: 50%;
-  background-color: #4CAF50;
+  background: var(--primary-gradient);
   color: white;
   cursor: pointer;
   display: flex;
@@ -649,29 +700,31 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: var(--primary-gradient);
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }
 
 .speed-control input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.15), 0 4px 8px rgba(102, 126, 234, 0.4);
 }
 
 .speed-control input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #4CAF50;
+  background: var(--primary-gradient);
   cursor: pointer;
   border: none;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
 }
 
 .speed-control input[type="range"]::-moz-range-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.15), 0 4px 8px rgba(102, 126, 234, 0.4);
 }
 
 .speed-presets {
@@ -777,9 +830,11 @@
 }
 
 .sentence-nav-button:hover:not(:disabled) {
-  border-color: #4CAF50;
-  color: #4CAF50;
-  background-color: #f1f8f4;
+  border-color: #667eea;
+  color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .sentence-nav-button:disabled {
@@ -1434,7 +1489,7 @@
 
 .repeat-indicator {
   font-size: 13px;
-  color: #4CAF50;
+  color: #667eea;
   font-weight: 600;
   margin-top: 4px;
 }
@@ -1517,21 +1572,23 @@
   justify-content: space-between;
   gap: 10px;
   padding: 6px 12px;
-  border: 1px solid #4CAF50;
-  border-radius: 4px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  color: #667eea;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease-out;
   min-height: 28px;
   min-width: 80px;
 }
 
 .speed-settings-header .header-controls .dynamic-toggle-button:hover {
-  background-color: #4CAF50;
+  background: var(--primary-gradient);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  transform: translateY(-1px);
 }
 
 .speed-settings-header .header-controls .dynamic-toggle-button .current-value {
@@ -1609,21 +1666,23 @@
   justify-content: space-between;
   gap: 10px;
   padding: 6px 12px;
-  border: 1px solid #4CAF50;
-  border-radius: 4px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  color: #667eea;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease-out;
   min-height: 28px;
   min-width: 80px;
 }
 
 .repeat-settings-header .header-controls .dynamic-toggle-button:hover {
-  background-color: #4CAF50;
+  background: var(--primary-gradient);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  transform: translateY(-1px);
 }
 
 .repeat-settings-header .header-controls .dynamic-toggle-button .current-value {
@@ -1695,7 +1754,7 @@
 
 .repeat-counter {
   font-size: 13px;
-  color: #4CAF50;
+  color: #667eea;
   font-weight: 600;
 }
 
@@ -1718,14 +1777,17 @@
 }
 
 .repeat-option:hover {
-  border-color: #4CAF50;
-  color: #4CAF50;
+  border-color: #667eea;
+  color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  transform: translateY(-1px);
 }
 
 .repeat-option.active {
-  background-color: #4CAF50;
+  background: var(--primary-gradient);
   color: white;
-  border-color: #4CAF50;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
 }
 
 .repeat-checkbox-group {

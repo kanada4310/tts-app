@@ -70,21 +70,23 @@
   justify-content: center;
   gap: 10px;
   padding: 6px 12px;
-  border: 1px solid #4CAF50;
-  border-radius: 4px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  border: 1px solid #667eea;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  color: #667eea;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease-out;
   min-height: 28px;
   min-width: 80px;
 }
 
 .header-controls button:hover {
-  background-color: #4CAF50;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  transform: translateY(-1px);
 }
 
 .sentence-list-content {
@@ -96,24 +98,28 @@
   border-top: 1px solid #e0e0e0;
 }
 
+/* Task 5.2: Sentence switching fade animation */
 .sentence-item {
   display: flex;
   gap: 12px;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   user-select: none;
+  animation: fade-in 300ms ease-out;
 }
 
 .sentence-item:hover {
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  transform: translateX(2px);
 }
 
 .sentence-item.current {
-  background-color: #e8f5e9;
-  border-left: 4px solid #4CAF50;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+  border-left: 4px solid #667eea;
   padding-left: 8px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
 }
 
 .sentence-item.out-of-range {
@@ -138,11 +144,12 @@
 
 /* Focus style for accessibility */
 .sentence-item:focus {
-  outline: 2px solid #4CAF50;
+  outline: 2px solid #667eea;
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
 }
 
-/* Custom scrollbar styling */
+/* Custom scrollbar styling - unified design */
 .sentence-list-content::-webkit-scrollbar {
   width: 8px;
 }
@@ -153,12 +160,12 @@
 }
 
 .sentence-list-content::-webkit-scrollbar-thumb {
-  background: #4CAF50;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
   border-radius: 4px;
 }
 
 .sentence-list-content::-webkit-scrollbar-thumb:hover {
-  background: #45a049;
+  background: linear-gradient(180deg, #5568d3 0%, #63408b 100%);
 }
 
 /* Mobile responsive styles */
