@@ -3,6 +3,7 @@ import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
 import { Tutorial } from '@/components/common/Tutorial'
+import { InstallPrompt } from '@/components/common/InstallPrompt'
 import { performTTS, performTTSSeparated, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
@@ -236,6 +237,8 @@ function App() {
           </section>
         )}
       </main>
+
+      <InstallPrompt />
     </div>
   )
 }
