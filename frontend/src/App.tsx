@@ -238,38 +238,6 @@ function App() {
             </button>
           </section>
         )}
-
-        {!ocrText && imagePreviews.length === 0 && (
-          <div className="welcome-message">
-            <h2>{MESSAGES.WELCOME_TITLE}</h2>
-            <p>{MESSAGES.WELCOME_DESCRIPTION}</p>
-            <div className="features">
-              <div className="feature">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-                </svg>
-                <h3>{MESSAGES.FEATURE_UPLOAD_TITLE}</h3>
-                <p>{MESSAGES.FEATURE_UPLOAD_DESC}</p>
-              </div>
-              <div className="feature">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                <h3>{MESSAGES.FEATURE_EXTRACT_TITLE}</h3>
-                <p>{MESSAGES.FEATURE_EXTRACT_DESC}</p>
-              </div>
-              <div className="feature">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 18V5l12-2v13M6 15v8M15 16v5" />
-                  <circle cx="6" cy="21" r="2" />
-                  <circle cx="15" cy="19" r="2" />
-                </svg>
-                <h3>{MESSAGES.FEATURE_GENERATE_TITLE}</h3>
-                <p>{MESSAGES.FEATURE_GENERATE_DESC}</p>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   )
