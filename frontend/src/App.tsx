@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ImageUpload } from '@/components/features/ImageUpload'
 import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
@@ -8,6 +8,8 @@ import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
 import './App.css'
+
+const TUTORIAL_STORAGE_KEY = 'tts-app-tutorial-completed'
 
 function App() {
   const [ocrText, setOcrText] = useState('')
@@ -20,6 +22,14 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [showTutorial, setShowTutorial] = useState(false)
+
+  // Show tutorial on first visit
+  useEffect(() => {
+    const completed = localStorage.getItem(TUTORIAL_STORAGE_KEY)
+    if (!completed) {
+      setShowTutorial(true)
+    }
+  }, [])
 
   // Separated audio mode (new)
   const [audioSegments, setAudioSegments] = useState<Blob[]>([])

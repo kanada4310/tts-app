@@ -4,7 +4,7 @@
  * Displays a step-by-step tutorial overlay for first-time users
  */
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import './styles.css'
 
 interface TutorialStep {
@@ -38,16 +38,7 @@ export interface TutorialProps {
 }
 
 export function Tutorial({ onComplete }: TutorialProps) {
-  const [isVisible, setIsVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-
-  useEffect(() => {
-    // Check if tutorial has been completed before
-    const completed = localStorage.getItem(TUTORIAL_STORAGE_KEY)
-    if (!completed) {
-      setIsVisible(true)
-    }
-  }, [])
 
   const handleNext = () => {
     if (currentStep < TUTORIAL_STEPS.length - 1) {
@@ -63,12 +54,8 @@ export function Tutorial({ onComplete }: TutorialProps) {
 
   const handleComplete = () => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, 'true')
-    setIsVisible(false)
+    setCurrentStep(0) // Reset for next time
     onComplete?.()
-  }
-
-  if (!isVisible) {
-    return null
   }
 
   const step = TUTORIAL_STEPS[currentStep]
