@@ -1121,6 +1121,7 @@
   font-size: 14px;
 }
 
+/* Task 6.1: Mobile Layout Optimizations */
 @media (max-width: 768px) {
   .audio-player {
     padding: 16px;
@@ -1129,11 +1130,22 @@
     z-index: 100;
     background-color: white;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 20px 20px 0 0; /* Rounded top for mobile */
   }
 
   /* Slightly more compact spacing on mobile */
   .audio-player > * + * {
     margin-top: 12px;
+  }
+
+  /* Task 6.1: Enhanced gradient visibility on mobile */
+  .control-button.primary {
+    box-shadow: var(--shadow-xl), 0 0 40px rgba(102, 126, 234, 0.5) !important;
+  }
+
+  .preset-button.active,
+  .speed-preset-button.active {
+    box-shadow: var(--shadow-xl), 0 0 30px rgba(79, 172, 254, 0.5) !important;
   }
 
   /* Mobile: Custom spacing for specific component pairs */
@@ -1440,6 +1452,61 @@
 
   .sentence-indicator .current-sentence {
     font-size: 42px; /* Larger for mobile emphasis */
+  }
+}
+
+/* Task 6.2: Touch Operation Improvements */
+@media (hover: none) and (pointer: coarse) {
+  /* Touch devices only - prevent accidental double-tap zoom */
+  .audio-player {
+    touch-action: manipulation;
+  }
+
+  /* Enhanced touch feedback */
+  .control-button:active {
+    transform: scale(0.92);
+    transition: transform 100ms ease-out;
+  }
+
+  .control-button.primary:active {
+    box-shadow: var(--shadow-md), 0 0 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .preset-button:active,
+  .speed-preset-button:active,
+  .repeat-option:active {
+    background: var(--accent-gradient);
+    color: white;
+    transform: scale(0.95);
+  }
+
+  .sentence-nav-button:active {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+    transform: scale(0.95);
+  }
+
+  /* Ensure minimum tap target sizes */
+  .control-button,
+  .preset-button,
+  .speed-preset-button,
+  .sentence-nav-button,
+  .repeat-option {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Prevent text selection on touch */
+  .audio-player * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Allow text selection in specific areas */
+  .sentence-text,
+  .time-display {
+    -webkit-user-select: text;
+    user-select: text;
   }
 }
 
@@ -1876,4 +1943,102 @@
   font-weight: 500;
   color: #444;
   line-height: 1.4;
+}
+
+/* Task 6.3: Breakpoint Optimizations for All Device Sizes */
+
+/* Extra Small Devices (< 375px): Small phones */
+@media (max-width: 374px) {
+  .audio-player {
+    padding: 12px;
+  }
+
+  .sentence-indicator .current-sentence {
+    font-size: 36px !important;
+  }
+
+  .control-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .preset-button,
+  .speed-preset-button {
+    font-size: 13px;
+    padding: 8px 14px;
+  }
+}
+
+/* Small Devices (375px - 767px): Standard phones */
+/* Already optimized in main @media (max-width: 768px) */
+
+/* Medium Devices (768px - 1024px): Tablets portrait */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .audio-player {
+    max-width: 700px;
+    padding: 20px;
+  }
+
+  .preset-button,
+  .speed-preset-button {
+    font-size: 15px;
+    padding: 10px 20px;
+  }
+
+  .sentence-indicator .current-sentence {
+    font-size: 40px;
+  }
+}
+
+/* Large Devices (1025px - 1440px): Tablets landscape, small desktops */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .audio-player {
+    max-width: 800px;
+  }
+
+  .control-button.primary {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* Extra Large Devices (> 1440px): Large desktops */
+@media (min-width: 1441px) {
+  .audio-player {
+    max-width: 900px;
+  }
+
+  /* Larger interactive elements for comfortable desktop use */
+  .control-button {
+    width: 52px;
+    height: 52px;
+  }
+
+  .progress-bar-container {
+    height: 8px;
+  }
+
+  .progress-bar-container:hover {
+    height: 12px;
+  }
+}
+
+/* Landscape Orientation Optimizations */
+@media (max-height: 600px) and (orientation: landscape) {
+  .audio-player {
+    padding: 12px 16px;
+  }
+
+  .audio-player > * + * {
+    margin-top: 8px;
+  }
+
+  .sentence-indicator .current-sentence {
+    font-size: 28px;
+  }
+
+  .control-button {
+    width: 40px;
+    height: 40px;
+  }
 }
