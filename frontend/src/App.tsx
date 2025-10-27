@@ -19,6 +19,7 @@ function App() {
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
+  const [showTutorial, setShowTutorial] = useState(false)
 
   // Separated audio mode (new)
   const [audioSegments, setAudioSegments] = useState<Blob[]>([])
@@ -125,11 +126,27 @@ function App() {
 
   return (
     <div className="app">
-      <Tutorial />
+      {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
 
       <header className="app-header">
-        <h1>{MESSAGES.APP_TITLE}</h1>
-        <p>{MESSAGES.APP_SUBTITLE}</p>
+        <div className="header-content">
+          <div className="header-text">
+            <h1>{MESSAGES.APP_TITLE}</h1>
+            <p>{MESSAGES.APP_SUBTITLE}</p>
+          </div>
+          <button
+            className="tutorial-trigger-button"
+            onClick={() => setShowTutorial(true)}
+            title="使い方を見る"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>使い方</span>
+          </button>
+        </div>
       </header>
 
       <main className="app-main">
@@ -244,10 +261,6 @@ function App() {
           </div>
         )}
       </main>
-
-      <footer className="app-footer">
-        <p>{MESSAGES.FOOTER_POWERED_BY}</p>
-      </footer>
     </div>
   )
 }

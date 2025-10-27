@@ -3,15 +3,29 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
 }
 
 /* Header */
 .app-header {
-  background-color: white;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+  backdrop-filter: blur(10px);
   padding: 24px 32px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-text {
+  flex: 1;
 }
 
 .app-header h1 {
@@ -19,7 +33,7 @@
   font-size: 32px;
   font-weight: 700;
   color: #333;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -29,6 +43,33 @@
   margin: 0;
   font-size: 16px;
   color: #666;
+}
+
+.tutorial-trigger-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  color: #667eea;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease-out;
+  min-height: 40px;
+}
+
+.tutorial-trigger-button:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  transform: translateY(-1px);
+}
+
+.tutorial-trigger-button svg {
+  flex-shrink: 0;
 }
 
 /* Main Content */
@@ -100,7 +141,10 @@
 .welcome-message h2 {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 16px 0;
 }
 
@@ -120,19 +164,21 @@
 
 .feature {
   padding: 32px 24px;
-  background-color: white;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.1);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.08);
+  transition: all 0.3s ease;
 }
 
 .feature:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
 }
 
 .feature svg {
-  color: #4CAF50;
+  color: #667eea;
   margin-bottom: 16px;
 }
 
@@ -149,19 +195,41 @@
   margin: 0;
 }
 
-/* Footer */
-.app-footer {
-  background-color: white;
-  padding: 20px;
+/* Re-upload Section (shown at bottom after audio generation) */
+.reupload-section {
+  margin-top: 32px;
+  padding: 24px;
   text-align: center;
-  border-top: 1px solid #e0e0e0;
-  margin-top: auto;
 }
 
-.app-footer p {
-  margin: 0;
-  font-size: 14px;
-  color: #999;
+.reupload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.2s ease;
+}
+
+.reupload-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.reupload-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.reupload-button svg {
+  flex-shrink: 0;
 }
 
 /* Responsive */
@@ -170,12 +238,24 @@
     padding: 20px 16px;
   }
 
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
   .app-header h1 {
     font-size: 24px;
   }
 
   .app-header p {
     font-size: 14px;
+  }
+
+  .tutorial-trigger-button {
+    align-self: stretch;
+    justify-content: center;
+    padding: 12px 20px;
   }
 
   .app-main {
@@ -199,91 +279,7 @@
     grid-template-columns: 1fr;
     gap: 24px;
   }
-}
 
-/* Text Toggle Button */
-.text-toggle-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
-}
-
-.text-toggle-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.text-toggle-button:hover {
-  background-color: #45a049;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.text-toggle-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.text-toggle-button svg {
-  flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-  .text-toggle-button {
-    font-size: 13px;
-    padding: 8px 16px;
-  }
-}
-
-/* Re-upload Section (shown at bottom after audio generation) */
-.reupload-section {
-  margin-top: 32px;
-  padding: 24px;
-  text-align: center;
-}
-
-.reupload-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 28px;
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-  transition: all 0.2s ease;
-}
-
-.reupload-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-}
-
-.reupload-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-}
-
-.reupload-button svg {
-  flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
   .reupload-section {
     padding: 16px;
   }
