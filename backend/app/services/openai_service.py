@@ -418,7 +418,10 @@ class OpenAIService:
 
                 total_duration += duration
 
-                print(f"[TTS Separated] Sentence {idx}: {duration:.3f}s, text: {sentence_text[:30]}...")
+                # Safe printing with Unicode error handling for Windows console (cp932)
+                # Replace non-encodable characters before printing
+                safe_text = sentence_text[:30].encode('ascii', errors='replace').decode('ascii')
+                print(f"[TTS Separated] Sentence {idx}: {duration:.3f}s, text: {safe_text}...")
 
             print(f"[TTS Separated] Generated {len(audio_segments)} separate audio files, total: {total_duration:.3f}s")
 
