@@ -15,7 +15,6 @@ function App() {
   const [ocrText, setOcrText] = useState('')
   const [ocrSentences, setOcrSentences] = useState<string[]>([])
   const [originalOcrSentences, setOriginalOcrSentences] = useState<string[]>([]) // Store original OCR sentences
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [sentenceTimings, setSentenceTimings] = useState<SentenceTiming[]>([])
   const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false)
@@ -35,12 +34,11 @@ function App() {
   const [audioSegments, setAudioSegments] = useState<Blob[]>([])
   const [segmentDurations, setSegmentDurations] = useState<number[]>([])
 
-  const handleOCRComplete = (result: OCRResponse, imageDataUrls: string[]) => {
+  const handleOCRComplete = (result: OCRResponse, _imageDataUrls: string[]) => {
     const sentences = result.sentences || []
     setOcrText(result.text)
     setOcrSentences(sentences)
     setOriginalOcrSentences(sentences) // Store original OCR sentences
-    setImagePreviews(imageDataUrls)
     setError(null)
   }
 
@@ -223,7 +221,6 @@ function App() {
                 setOcrText('')
                 setOcrSentences([])
                 setOriginalOcrSentences([])
-                setImagePreviews([])
                 setSentenceTimings([])
                 setAudioSegments([])
                 setSegmentDurations([])
