@@ -5,6 +5,288 @@
 
 ---
 
+## セッション #21 - 2025-10-27（✅ 完了）
+
+### 実施内容
+
+このセッションでは、ビルドエラーの修正とPWA対応の完全実装を行いました。
+
+#### 1. 未使用変数の修正（Vercelビルドエラー解消）
+
+**問題**: Vercelビルド時にTypeScriptエラー（TS6133）が発生
+```
+error TS6133: 'imagePreviews' is declared but its value is never read.
+```
+
+**原因**: 過去のリファクタリングでImageUploadコンポーネントが内部でプレビュー管理するようになり、App.tsx側の`imagePreviews` stateが不要になっていた
+
+**解決**:
+- `const [imagePreviews, setImagePreviews] = useState<string[]>([])` を削除
+- `setImagePreviews(imageDataUrls)` を削除（handleOCRComplete内）
+- `setImagePreviews([])` を削除（リセット時）
+- `imageDataUrls` パラメータを `_imageDataUrls` に変更（未使用を明示）
+
+**変更ファイル**: `frontend/src/App.tsx`
+
+#### 2. PWA対応の完全実装
+
+##### A. PWAマニフェスト設定の充実化
+
+**変更ファイル**: `frontend/vite.config.ts`
+
+**設定内容**:
+- 日本語名称: 「TTS 音声学習アプリ」
+- 短縮名: 「TTS App」
+- 詳細説明: 「画像から文字を読み取り、音声で再生する学習アプリ。リピート再生や速度調整で効率的な学習をサポートします。」
+- 言語: ja
+- start_url: "/"
+- scope: "/"
+- display: standalone（アプリモード）
+- orientation: portrait-primary
+- theme_color: #667eea（紫青グラデーション）
+- background_color: #ffffff
+- categories: ["education", "productivity"]
+
+##### B. Service Workerのキャッシュ戦略
+
+**Workbox設定**:
+```javascript
+workbox: {
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+  runtimeCaching: [
+    // Google Fonts: CacheFirst（1年間保持）
+    // API: NetworkFirst（5分間保持、10秒タイムアウト）
+  ],
+  cleanupOutdatedCaches: true
+}
+```
+
+**キャッシュ戦略**:
+- 静的アセット: プリキャッシュ（11エントリー、556KB）
+- Google Fonts: CacheFirst（1年間保持）
+- APIリクエスト: NetworkFirst（5分間保持、10秒タイムアウト）
+
+##### C. PWAアイコン作成
+
+**新規作成ファイル**: `frontend/generate-icons.html`
+
+アイコン生成ツールをCanvas APIで実装:
+- 紫青グラデーション背景（#667eea → #764ba2）
+- 白文字で「TTS」（大）と「音声学習」（小）を表示
+- 3サイズを生成: 192x192、512x512、180x180（Apple用）
+
+**生成したアイコン**:
+- `frontend/public/pwa-192x192.png` (42KB)
+- `frontend/public/pwa-512x512.png` (260KB)
+- `frontend/public/apple-touch-icon.png` (38KB)
+
+##### D. インストールプロンプトUI実装
+
+**新規作成ファイル**:
+- `frontend/src/components/common/InstallPrompt/InstallPrompt.tsx`
+- `frontend/src/components/common/InstallPrompt/index.ts`
+- `frontend/src/components/common/InstallPrompt/styles.css`
+
+**機能**:
+- `beforeinstallprompt`イベントをキャプチャ
+- 3秒後に自動表示
+- localStorageで却下状態を記憶（`pwa-install-dismissed`）
+- 既にインストール済みかチェック（`display-mode: standalone`）
+- グラデーション背景、モダンなデザイン
+- モバイル最適化レイアウト
+
+**App.tsxへの統合**:
+```tsx
+import { InstallPrompt } from '@/components/common/InstallPrompt'
+// ...
+<InstallPrompt />
+```
+
+##### E. Font Awesome Kit統合
+
+**変更ファイル**: `frontend/index.html`
+
+```html
+<script src="https://kit.fontawesome.com/3c71b85949.js" crossorigin="anonymous"></script>
+```
+
+#### 3. PWAエラー修正
+
+##### A. meta tag警告の修正
+
+**問題**: Console警告
+```
+<meta name="apple-mobile-web-app-capable" content="yes"> is deprecated
+```
+
+**解決**: `frontend/index.html`に追加
+```html
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+```
+
+既存のapple用tagは互換性のため保持。
+
+##### B. PWAアイコン404エラーの修正
+
+**問題**:
+```
+/pwa-192x192.png: Failed to load resource: 404
+Error while trying to use the following icon from the Manifest
+```
+
+**原因**: Vercelがプロジェクトルートでビルドを実行し、`frontend/public/`内のアイコンファイルがデプロイされていなかった
+
+**試行1**: vercel.jsonを作成
+```json
+{
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install"
+}
+```
+→ エラー: `Command "cd frontend && npm install" exited with 1`
+
+**試行2**: vercel.jsonを削除し、Vercelダッシュボードで設定
+
+**最終解決**:
+1. vercel.jsonを削除
+2. Vercelダッシュボード → Settings → General
+3. Root Directory: `frontend`
+4. Framework: Vite（自動検出）
+5. Build Command: `npm run build`（自動検出）
+6. Output Directory: `dist`（自動検出）
+
+**結果**: ビルド成功、PWAアイコンが正しくデプロイされた
+
+---
+
+### 技術的決定事項
+
+#### vercel.jsonの削除とダッシュボード設定への移行
+
+**決定**: vercel.jsonでのコマンド指定をやめ、Vercelダッシュボードで設定
+
+**理由**:
+- `cd frontend && npm install`がVercelのシェル環境でエラーを引き起こした
+- Vercelの推奨方法はダッシュボードでRoot Directory設定
+- シンプルで確実な方法
+
+**代替案**:
+- vercel.jsonで複雑なコマンド指定を試みる → エラーが多発
+- モノレポ構成に変更 → 過剰な変更
+
+**効果**: ビルドが成功し、PWAアイコンが正しくデプロイされた
+
+#### Workboxのキャッシュ戦略
+
+**静的アセット**: プリキャッシュ
+- 理由: アプリの高速起動、オフライン対応
+
+**フォント**: CacheFirst
+- 理由: ネットワーク負荷軽減、フォントは変更されない
+
+**API**: NetworkFirst
+- 理由: 常に最新データ優先、オフライン時はキャッシュフォールバック
+- タイムアウト: 10秒
+- キャッシュ保持: 5分間
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: Vercelビルドエラー（TS6133）
+
+**症状**: `imagePreviews is declared but its value is never read`
+
+**原因**: 過去のリファクタリングで不要になった変数が残っていた
+
+**解決方法**: App.tsxから`imagePreviews` state関連コードを完全削除
+
+**所要時間**: 10分
+
+#### 問題2: PWAアイコン404エラー
+
+**症状**: `/pwa-192x192.png: 404 Not Found`
+
+**原因**: Vercelがプロジェクトルートでビルドし、`frontend/public/`を認識していなかった
+
+**解決方法**: VercelダッシュボードでRoot Directoryを`frontend`に設定
+
+**所要時間**: 30分（試行錯誤含む）
+
+#### 問題3: vercel.jsonのコマンドエラー
+
+**症状**: `Command "cd frontend && npm install" exited with 1`
+
+**原因**: Vercelのシェル環境で`cd`コマンドが期待通りに動作しない
+
+**解決方法**: vercel.jsonを削除し、ダッシュボード設定に移行
+
+**所要時間**: 15分
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### すぐに着手すべきこと
+
+**PWA対応は完全に完了しました！**
+
+次回セッションでは、以下の方向性から選択できます：
+
+1. **生徒による実地テストとフィードバック収集**
+   - 実際のユーザーによる評価
+   - 改善点の洗い出し
+
+2. **UI改善プラン Phase 2-6の追加実装**（TODO.md 169-199行）
+   - Phase 2: インタラクティブ要素の強化（1.5時間）
+   - Phase 3: コントロールボタンのアップグレード（1.5時間）
+   - Phase 4: 情報表示の改善（1時間）
+   - Phase 5: 流体アニメーション（2時間）
+   - Phase 6: レスポンシブデザインの最適化（1.5時間）
+
+3. **学習機能の高度化**（TODO.md 808-842行）
+   - 学習記録（練習履歴）（3-4時間）
+   - お気に入り・ブックマーク機能（2-3時間）
+   - 速度変更の段階的練習モード（2時間）
+
+#### 注意事項
+
+- **Vercel設定**: Root Directoryを`frontend`に設定済み、vercel.jsonは使用しない
+- **PWA動作確認**: デプロイ後、以下を確認
+  - アイコンファイルが読み込めること（/pwa-192x192.png等）
+  - 開発者ツールでmanifestが正しく表示されること
+  - インストールプロンプトが3秒後に表示されること
+- **Font Awesome**: Kit ID 3c71b85949がindex.htmlに統合済み
+
+---
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `frontend/generate-icons.html` - PWAアイコン生成ツール
+- [x] `frontend/public/pwa-192x192.png` - PWAアイコン 192x192
+- [x] `frontend/public/pwa-512x512.png` - PWAアイコン 512x512
+- [x] `frontend/public/apple-touch-icon.png` - Appleアイコン 180x180
+- [x] `frontend/src/components/common/InstallPrompt/InstallPrompt.tsx` - インストールプロンプトコンポーネント
+- [x] `frontend/src/components/common/InstallPrompt/index.ts` - エクスポート
+- [x] `frontend/src/components/common/InstallPrompt/styles.css` - スタイル
+
+#### 更新ファイル
+- [x] `frontend/vite.config.ts` - PWAマニフェスト設定、Workbox設定
+- [x] `frontend/index.html` - Font Awesome Kit追加、meta tag修正
+- [x] `frontend/src/App.tsx` - 未使用変数削除、InstallPrompt統合
+
+#### Git commits
+- [x] `91ccd4b` - Fix: 未使用変数 imagePreviews を削除してビルドエラーを解消
+- [x] `008436f` - Feature: PWA対応の完全実装
+- [x] `b86e6ae` - Fix: PWAアイコン404エラーとmeta tag警告を修正
+- [x] `3ec4f88` - Fix: vercel.jsonを削除してVercel設定で対応
+- [x] リモートへプッシュ完了
+
+---
+
 ## セッション #20 - 2025-10-27（✅ 完了）
 
 ### 実施内容
