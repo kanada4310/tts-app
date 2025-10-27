@@ -1,0 +1,17 @@
+# robots.txt for TTS 音声学習アプリ
+
+# 全てのクローラーを許可
+User-agent: *
+Allow: /
+
+# サイトマップの場所（将来的に追加予定）
+# Sitemap: https://tts-app-ycaz.vercel.app/sitemap.xml
+
+# クロール速度の調整（サーバー負荷軽減）
+Crawl-delay: 1
+
+# 除外するパス（APIエンドポイントはクロール不要）
+Disallow: /api/
+
+# 注意: このファイルはSEO最適化のために作成されました
+# PWAアプリケーションのため、実際のクロール対象ページは限定的です
