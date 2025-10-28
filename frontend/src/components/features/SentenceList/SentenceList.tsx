@@ -9,6 +9,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { BookmarkService } from '@/services/learning'
 import type { SentenceTiming } from '@/types/api'
 import './styles.css'
 
@@ -28,7 +29,36 @@ export const SentenceList: React.FC<SentenceListProps> = ({
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [autoScroll, setAutoScroll] = useState(false)
+  const [bookmarkedSentences, setBookmarkedSentences] = useState<Set<string>>(new Set())
   const sentenceListRef = useRef<HTMLDivElement>(null)
+
+  // ブックマーク状態を初期化
+  useEffect(() => {
+    const bookmarked = new Set<string>()
+    sentences.forEach((sentence) => {
+      if (BookmarkService.isBookmarked(sentence)) {
+        bookmarked.add(sentence)
+      }
+    })
+    setBookmarkedSentences(bookmarked)
+  }, [sentences])
+
+  // ブックマークをトグル
+  const handleBookmarkToggle = (sentence: string, e: React.MouseEvent) => {
+    e.stopPropagation() // 文のクリックイベントを防止
+    BookmarkService.toggleBookmark(sentence)
+
+    // 状態を更新
+    setBookmarkedSentences((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(sentence)) {
+        newSet.delete(sentence)
+      } else {
+        newSet.add(sentence)
+      }
+      return newSet
+    })
+  }
 
   // Calculate visible range: current sentence +/- 3 sentences when playing
   const getVisibleRange = () => {
@@ -100,6 +130,15 @@ export const SentenceList: React.FC<SentenceListProps> = ({
             >
               <span className="sentence-number">{index + 1}</span>
               <span className="sentence-text">{sentence}</span>
+              <button
+                className={`sentence-bookmark ${
+                  bookmarkedSentences.has(sentence) ? 'bookmarked' : ''
+                }`}
+                onClick={(e) => handleBookmarkToggle(sentence, e)}
+                aria-label={bookmarkedSentences.has(sentence) ? 'ブックマーク削除' : 'ブックマーク追加'}
+              >
+                {bookmarkedSentences.has(sentence) ? '⭐' : '☆'}
+              </button>
             </div>
           ))}
         </div>

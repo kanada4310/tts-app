@@ -4,9 +4,12 @@ import { TextEditor } from '@/components/features/TextEditor'
 import { AudioPlayer } from '@/components/features/AudioPlayer'
 import { Tutorial } from '@/components/common/Tutorial'
 import { InstallPrompt } from '@/components/common/InstallPrompt'
+import { LearningDashboard } from '@/components/features/LearningDashboard'
+import { BookmarkList } from '@/components/features/BookmarkList'
 import { performTTS, performTTSSeparated, createAudioURL } from '@/services/api/tts'
 import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
+import { useLearningSession } from '@/hooks/useLearningSession'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
 import './App.css'
 
@@ -22,6 +25,11 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [showTutorial, setShowTutorial] = useState(false)
+
+  // Learning features
+  const { startSession } = useLearningSession()
+  const [showLearningDashboard, setShowLearningDashboard] = useState(false)
+  const [showBookmarkList, setShowBookmarkList] = useState(false)
 
   // Show tutorial on first visit
   useEffect(() => {
@@ -108,6 +116,10 @@ function App() {
         setAudioUrl('separated') // Flag to indicate separated mode
         setSentenceTimings([]) // Not used in separated mode
 
+        // Start learning session
+        const preview = text.substring(0, 50)
+        startSession(preview, ocrSentences.length)
+
         console.log(`[App] Generated ${audioBlobs.length} audio segments, total: ${totalDuration}s`)
       } else {
         // Fallback to standard TTS without timings
@@ -143,18 +155,36 @@ function App() {
             <h1>{MESSAGES.APP_TITLE}</h1>
             <p>{MESSAGES.APP_SUBTITLE}</p>
           </div>
-          <button
-            className="tutorial-trigger-button"
-            onClick={() => setShowTutorial(true)}
-            title="使い方を見る"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <circle cx="12" cy="17" r="0.5" fill="currentColor" />
-            </svg>
-            <span>使い方</span>
-          </button>
+          <div className="header-buttons">
+            <button
+              className="header-button learning-button"
+              onClick={() => setShowLearningDashboard(true)}
+              title="学習記録を見る"
+            >
+              <span>📊</span>
+              <span className="button-text">学習記録</span>
+            </button>
+            <button
+              className="header-button bookmark-button"
+              onClick={() => setShowBookmarkList(true)}
+              title="ブックマークを見る"
+            >
+              <span>⭐</span>
+              <span className="button-text">ブックマーク</span>
+            </button>
+            <button
+              className="tutorial-trigger-button"
+              onClick={() => setShowTutorial(true)}
+              title="使い方を見る"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <circle cx="12" cy="17" r="0.5" fill="currentColor" />
+              </svg>
+              <span>使い方</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -239,6 +269,15 @@ function App() {
       </main>
 
       <InstallPrompt />
+
+      {/* Learning Modals */}
+      {showLearningDashboard && (
+        <LearningDashboard onClose={() => setShowLearningDashboard(false)} />
+      )}
+
+      {showBookmarkList && (
+        <BookmarkList onClose={() => setShowBookmarkList(false)} />
+      )}
     </div>
   )
 }

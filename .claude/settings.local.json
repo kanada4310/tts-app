@@ -44,7 +44,14 @@
       "WebFetch(domain:github.com)",
       "Bash(python -m py_compile:*)",
       "Bash(npm run build:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(python:*)",
+      "Bash(move /Y HANDOVER_new.md HANDOVER.md)",
+      "Bash(move /Y SESSION_HISTORY_new.md SESSION_HISTORY.md)",
+      "Bash(del:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
