@@ -50,67 +50,272 @@ git diff
 
 ## フェーズ3: セッション管理ファイルの更新
 
-### 3.0 SESSION_HISTORY.mdへのアーカイブ（重要）
+### 3.0 SESSION_HISTORY.mdへのアーカイブ（⚠️ 必須 ⚠️）
 
-**目的**: HANDOVER.mdの肥大化を防ぎ、/start時のトークン消費を削減
+**⚠️ 重要**: このステップは**必ず実行**してください。HANDOVER.mdには**現在のセッション（#N）のみ**を残し、それ以前のセッションは**全て**SESSION_HISTORY.mdに移動します。
 
-1. **現在のHANDOVER.mdから前々回以前のセッションを抽出**
-   - セッション番号を確認（現在が#Nなら、#N-2以前をアーカイブ）
-   - 前回セッション（#N-1）は残してもよい（直近の参考として）
+**目的**:
+- HANDOVER.mdの肥大化を防ぐ（/start時のトークン消費を削減）
+- 最新のセッション情報のみを簡潔に保つ
+- 過去のセッションは全てSESSION_HISTORYで参照可能にする
 
-2. **SESSION_HISTORY.mdに追加**
-   - `docs/sessions/SESSION_HISTORY.md`の目次を更新
-   - 新しいセッションを**先頭**に追加（新しい順）
-   - マークダウンのアンカーリンクが正しく機能するよう確認
+**実行手順**:
 
-3. **HANDOVER.mdの整理**
-   - アーカイブしたセッションをHANDOVER.mdから削除
-   - 最新セッション（#N）と前回セッション（#N-1、オプション）のみ残す
+#### ステップ1: 現在のセッション番号を確認
+
+```bash
+# HANDOVER.mdの最初のセッション番号を確認
+grep "^## セッション" docs/sessions/HANDOVER.md | head -1
+```
+
+現在のセッションが #N の場合、HANDOVER.mdには #N **のみ**を残します。
+
+#### ステップ2: 前回以前のセッション（#N-1以前）を抽出
+
+以下のPythonスクリプトまたはbashコマンドを使用して自動的にアーカイブ：
+
+**方法A: Bashコマンド（推奨）**
+
+```bash
+cd docs/sessions
+
+# 現在のセッション（最初のセッション）の行番号を取得
+FIRST_SESSION_LINE=$(grep -n "^## セッション" HANDOVER.md | head -1 | cut -d: -f1)
+
+# 2番目のセッションの行番号を取得（前回セッションの開始位置）
+SECOND_SESSION_LINE=$(grep -n "^## セッション" HANDOVER.md | head -2 | tail -1 | cut -d: -f1)
+
+# セッションが2つ以上ある場合のみアーカイブ
+if [ -n "$SECOND_SESSION_LINE" ]; then
+  # 現在のセッションのみを新しいHANDOVERファイルに保存
+  head -n $((SECOND_SESSION_LINE - 1)) HANDOVER.md > HANDOVER_new.md
+
+  # 前回以前のセッションを抽出
+  tail -n +$SECOND_SESSION_LINE HANDOVER.md > sessions_to_archive.txt
+
+  # SESSION_HISTORY.mdの目次とヘッダーを読み込み
+  head -n 27 SESSION_HISTORY.md > SESSION_HISTORY_header.txt
+
+  # SESSION_HISTORY.mdの既存セッションを取得（28行目以降）
+  tail -n +28 SESSION_HISTORY.md > SESSION_HISTORY_body.txt
+
+  # 新しいSESSION_HISTORY.mdを作成
+  # 1. ヘッダー（目次は手動で更新）
+  cat SESSION_HISTORY_header.txt > SESSION_HISTORY_new.md
+  # 2. アーカイブするセッション
+  cat sessions_to_archive.txt >> SESSION_HISTORY_new.md
+  echo "" >> SESSION_HISTORY_new.md
+  # 3. 既存のセッション
+  cat SESSION_HISTORY_body.txt >> SESSION_HISTORY_new.md
+
+  # ファイルを置き換え
+  mv HANDOVER_new.md HANDOVER.md
+  mv SESSION_HISTORY_new.md SESSION_HISTORY.md
+
+  # 一時ファイルを削除
+  rm sessions_to_archive.txt SESSION_HISTORY_header.txt SESSION_HISTORY_body.txt
+
+  echo "✅ HANDOVER.mdを整理しました（現在のセッションのみ残存）"
+  echo "✅ 前回以前のセッションをSESSION_HISTORY.mdにアーカイブしました"
+else
+  echo "ℹ️ HANDOVER.mdには現在のセッションのみが含まれています（アーカイブ不要）"
+fi
+```
+
+**方法B: Pythonスクリプト**
+
+```bash
+cd docs/sessions
+python -c "
+import re
+
+# HANDOVER.mdを読み込み
+with open('HANDOVER.md', 'r', encoding='utf-8') as f:
+    handover = f.read()
+
+# セッションの開始位置を検索
+sessions = list(re.finditer(r'^## セッション', handover, re.MULTILINE))
+
+if len(sessions) <= 1:
+    print('ℹ️ HANDOVER.mdには現在のセッションのみが含まれています（アーカイブ不要）')
+    exit()
+
+# 現在のセッション（最初のセッション）のみを保持
+current_session_end = sessions[1].start()
+new_handover = handover[:current_session_end].rstrip() + '\n\n'
+
+# 前回以前のセッションを抽出
+old_sessions = handover[current_session_end:]
+
+# SESSION_HISTORY.mdを読み込み
+with open('SESSION_HISTORY.md', 'r', encoding='utf-8') as f:
+    history = f.read()
+
+# SESSION_HISTORY.mdのヘッダー（目次セクション）を取得
+history_lines = history.split('\n')
+history_header = '\n'.join(history_lines[:27])  # 目次部分（27行目まで）
+history_body = '\n'.join(history_lines[27:])
+
+# 新しいSESSION_HISTORY.mdを作成
+# 注意: 目次は手動で更新が必要
+new_history = history_header + '\n\n' + old_sessions + '\n' + history_body
+
+# ファイルを書き込み
+with open('HANDOVER.md', 'w', encoding='utf-8') as f:
+    f.write(new_handover)
+
+with open('SESSION_HISTORY.md', 'w', encoding='utf-8') as f:
+    f.write(new_history)
+
+print('✅ HANDOVER.mdを整理しました（現在のセッションのみ残存）')
+print('✅ 前回以前のセッションをSESSION_HISTORY.mdにアーカイブしました')
+print('⚠️ SESSION_HISTORY.mdの目次を手動で更新してください')
+"
+```
+
+#### ステップ3: SESSION_HISTORY.mdの目次を更新
+
+アーカイブしたセッションを目次に追加：
+
+```markdown
+## 目次
+- [セッション #N-1 - YYYY-MM-DD](#セッション-n-1---yyyy-mm-dd)
+- [セッション #N-2 - YYYY-MM-DD](#セッション-n-2---yyyy-mm-dd)
+...
+```
+
+#### ステップ4: 確認
+
+```bash
+# HANDOVER.mdに現在のセッションのみが含まれていることを確認
+grep "^## セッション" docs/sessions/HANDOVER.md
+
+# SESSION_HISTORY.mdにアーカイブされたセッションが含まれていることを確認
+grep "^## セッション" docs/sessions/SESSION_HISTORY.md | head -10
+```
+
+**期待される結果**:
+- HANDOVER.md: 現在のセッション（#N）のみ
+- SESSION_HISTORY.md: 全ての過去のセッション（#N-1, #N-2, ...）
+
+**⚠️ この処理を忘れると**:
+- HANDOVER.mdが肥大化し、/start時のトークン消費が増加
+- セッション開始時の読み込み時間が長くなる
+- GitHubのdiffが見づらくなる
 
 ### 3.1 HANDOVER.md の更新
 
-`docs/sessions/HANDOVER.md`に以下の形式で新しいセクションを**追加**:
+**前提**: ステップ3.0で前回以前のセッションは既にアーカイブ済み。HANDOVER.mdには現在のセッション（#N）の内容を追加します。
+
+`docs/sessions/HANDOVER.md`の先頭（`---`の直後）に以下の形式で新しいセクションを**挿入**:
 
 ```markdown
-## セッション #X - YYYY-MM-DD
+## セッション #N - YYYY-MM-DD（✅ 完了）
 
 ### 実施内容
 
+このセッションでは、[セッションの概要を1-2文で記載]を行いました。
+
 #### 1. [作業内容のタイトル]
+
+**問題**: [問題があった場合の説明]
+
+**解決**:
 - 実施した具体的な作業
 - 作成・編集したファイル
 - 実装した機能
 
+**変更ファイル**: `path/to/file.ext`
+
 #### 2. [技術的決定事項のタイトル]
-- 決定内容
+
+**決定**: [決定内容]
+
+**理由**:
 - 選択理由
 - 代替案との比較
 
+**効果**: [期待される効果]
+
+---
+
+### 技術的決定事項
+
+#### [重要な決定のタイトル]
+
+**発見**: [発見した事実]
+
+**証拠**:
+- 証拠1
+- 証拠2
+
+**結論**: [結論]
+
+---
+
 ### 発生した問題と解決
 
-**問題**: [問題の説明]
-- 原因: [原因]
-- 解決方法: [解決方法]
-- 所要時間: [時間]
+#### 問題1: [問題のタイトル]
+
+**症状**: [症状の説明]
+
+**原因**: [原因]
+
+**解決方法**: [解決方法]
+
+**所要時間**: [時間]
+
+---
 
 ### 次セッションへの引き継ぎ事項
 
-#### すぐに着手すべきこと
-1. [タスク1]
-2. [タスク2]
+#### すぐに着手できるタスク
+
+TODO.mdによると、以下のタスクが残っています：
+
+1. **🎯 [タスク1]**（最優先）
+   - 詳細
+   - 所要時間: X時間
+
+2. **🔧 [タスク2]**
+   - 詳細
+   - 所要時間: Y時間
 
 #### 注意事項
-- [注意点1]
-- [注意点2]
+
+- **[注意点1]**: 説明
+- **[注意点2]**: 説明
+
+---
 
 ### 成果物リスト
-- [x] [ファイル名] - [説明]
-- [x] [ファイル名] - [説明]
+
+#### 新規作成ファイル
+- [x] `path/to/file1.ext` - 説明
+- [x] `path/to/file2.ext` - 説明
+
+#### 更新ファイル
+- [x] `path/to/file3.ext` - 変更内容
+
+#### Git commits
+- [x] `abc1234` - コミットメッセージ
+- [x] リモートへプッシュ完了
+
+---
+
+### 統計情報
+- 作業時間: 約X時間
+- 完了タスク: N個
+- コミット数: M
+- [その他の統計]
+
+---
 ```
 
-**注意**:
-- 最新セッションのみHANDOVER.mdに記載
-- 古いセッションは3.0でSESSION_HISTORY.mdにアーカイブ済み
+**重要**:
+- ⚠️ 前回以前のセッションは**記載しない**（既にステップ3.0でアーカイブ済み）
+- ✅ HANDOVER.mdには**現在のセッション（#N）のみ**が含まれる状態を維持
+- 📝 セッション番号、日付、完了ステータス（✅ 完了）を必ず記載
 
 ### 3.2 SUMMARY.md の更新
 
@@ -233,15 +438,25 @@ TODO.mdの🔴マークのタスクが次回すぐに着手できる状態か確
 
 セッション終了前に以下を確認:
 
-- [ ] HANDOVER.mdに今回のセッション内容を追加
+### ⚠️ 必須タスク
+- [ ] **SESSION_HISTORY.mdへのアーカイブ完了**（フェーズ3.0）
+  - [ ] HANDOVER.mdに現在のセッション（#N）のみが含まれている
+  - [ ] 前回以前のセッション（#N-1以前）がSESSION_HISTORY.mdに移動済み
+  - [ ] SESSION_HISTORY.mdの目次が更新されている
+- [ ] **HANDOVER.mdに今回のセッション内容を追加**（フェーズ3.1）
+- [ ] **TODO.mdの完了タスクをチェック**（フェーズ3.3）
+- [ ] **TODO.mdの最終更新日を更新**（フェーズ3.3）
+
+### 推奨タスク
 - [ ] SUMMARY.mdの進捗率を更新
 - [ ] SUMMARY.mdの完了項目を更新
-- [ ] TODO.mdの完了タスクをチェック
 - [ ] TODO.mdに新規タスクを追加
 - [ ] TODO.mdの優先度を見直し
-- [ ] （オプション）Gitコミット・プッシュ
 - [ ] 次回の最優先タスクが明確
 - [ ] 次回必要なファイル・環境をメモ
+
+### オプション
+- [ ] Gitコミット・プッシュ（セッション管理ファイル）
 
 ## 最後に
 
