@@ -41,11 +41,16 @@ export interface Bookmark {
   bookmarkId: string // UUID
   sentenceId: string // 文のハッシュ値（同期的な簡易ハッシュ）
   sentenceText: string // 文の全文
+  sentenceIndex: number // 文のインデックス（0始まり）
   addedAt: string // 追加日時（ISO 8601形式、UTC）
   practiceCount: number // 練習回数（累積）
   lastPracticedAt: string | null // 最終練習日時（ISO 8601形式、UTC）
   masteryLevel: 1 | 2 | 3 | 4 | 5 // 習得度（1: 苦手、5: 習得）
   note: string // ユーザーのメモ
+  // 教材データ（音声再生用）
+  materialId: string // 教材ID（将来的にDB参照、現在はハッシュ値）
+  materialText: string // 教材の全文（OCR結果）
+  materialSentences: string[] // 全文の文配列
 }
 
 /**

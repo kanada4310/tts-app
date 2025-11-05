@@ -19,6 +19,8 @@ export interface SentenceListProps {
   currentSentenceIndex: number
   isPlaying: boolean
   onSentenceClick: (index: number) => void
+  // 教材データ（ブックマーク用）
+  materialText: string
 }
 
 export const SentenceList: React.FC<SentenceListProps> = ({
@@ -26,6 +28,7 @@ export const SentenceList: React.FC<SentenceListProps> = ({
   currentSentenceIndex,
   isPlaying,
   onSentenceClick,
+  materialText,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [autoScroll, setAutoScroll] = useState(false)
@@ -44,9 +47,9 @@ export const SentenceList: React.FC<SentenceListProps> = ({
   }, [sentences])
 
   // ブックマークをトグル
-  const handleBookmarkToggle = (sentence: string, e: React.MouseEvent) => {
+  const handleBookmarkToggle = (sentence: string, index: number, e: React.MouseEvent) => {
     e.stopPropagation() // 文のクリックイベントを防止
-    BookmarkService.toggleBookmark(sentence)
+    BookmarkService.toggleBookmark(sentence, index, materialText, sentences)
 
     // 状態を更新
     setBookmarkedSentences((prev) => {
@@ -134,7 +137,7 @@ export const SentenceList: React.FC<SentenceListProps> = ({
                 className={`sentence-bookmark ${
                   bookmarkedSentences.has(sentence) ? 'bookmarked' : ''
                 }`}
-                onClick={(e) => handleBookmarkToggle(sentence, e)}
+                onClick={(e) => handleBookmarkToggle(sentence, index, e)}
                 aria-label={bookmarkedSentences.has(sentence) ? 'ブックマーク削除' : 'ブックマーク追加'}
               >
                 {bookmarkedSentences.has(sentence) ? '⭐' : '☆'}

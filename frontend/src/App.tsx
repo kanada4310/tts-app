@@ -145,6 +145,36 @@ function App() {
     setError(errorMessage)
   }
 
+  // Handle sentence seek from bookmark
+  const handleSentenceSeek = (sentenceText: string) => {
+    const index = ocrSentences.findIndex((s) => s === sentenceText)
+    if (index !== -1) {
+      setCurrentSentenceIndex(index)
+      setShowBookmarkList(false) // Close bookmark list
+    }
+  }
+
+  // Handle bookmark play (regenerate audio from bookmark)
+  const handleBookmarkPlay = async (materialText: string, materialSentences: string[], sentenceIndex: number) => {
+    setShowBookmarkList(false)
+
+    // Reset current states
+    if (audioUrl && audioUrl !== 'separated') {
+      URL.revokeObjectURL(audioUrl)
+    }
+
+    // Set OCR data from bookmark
+    setOcrText(materialText)
+    setOcrSentences(materialSentences)
+    setOriginalOcrSentences(materialSentences)
+
+    // Generate audio
+    await handleGenerateSpeech(materialText)
+
+    // Set initial sentence index
+    setCurrentSentenceIndex(sentenceIndex)
+  }
+
   return (
     <div className="app">
       {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} />}
@@ -276,7 +306,11 @@ function App() {
       )}
 
       {showBookmarkList && (
-        <BookmarkList onClose={() => setShowBookmarkList(false)} />
+        <BookmarkList
+          onClose={() => setShowBookmarkList(false)}
+          onSentenceSeek={handleSentenceSeek}
+          onBookmarkPlay={handleBookmarkPlay}
+        />
       )}
     </div>
   )

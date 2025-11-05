@@ -30,6 +30,7 @@ export function AudioPlayer({
   audioUrl,
   audioSegments,
   segmentDurations,
+  sourceText,
   sourceSentences,
   onPlaybackComplete,
   onSentenceChange,
@@ -273,6 +274,7 @@ export function AudioPlayer({
           currentSentenceIndex={segmentState.currentIndex}
           isPlaying={playbackState.isPlaying}
           onSentenceClick={(index) => switchToSegment(index, false)}
+          materialText={sourceText || ''}
         />
       )}
 

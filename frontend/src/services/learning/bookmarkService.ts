@@ -22,7 +22,12 @@ export class BookmarkService {
   /**
    * ブックマークを追加
    */
-  static addBookmark(sentenceText: string): Bookmark | null {
+  static addBookmark(
+    sentenceText: string,
+    sentenceIndex: number,
+    materialText: string,
+    materialSentences: string[]
+  ): Bookmark | null {
     const data = LearningService.getLearningData()
 
     // 最大数チェック
@@ -42,16 +47,24 @@ export class BookmarkService {
       return existing
     }
 
+    // 教材IDを生成（全文のハッシュ）
+    const materialId = hashString(materialText)
+
     // 新規ブックマーク作成
     const bookmark: Bookmark = {
       bookmarkId: generateUUID(),
       sentenceId,
       sentenceText,
+      sentenceIndex,
       addedAt: new Date().toISOString(),
       practiceCount: 0,
       lastPracticedAt: null,
       masteryLevel: 1, // デフォルト: 苦手
       note: '',
+      // 教材データ（音声再生用）
+      materialId,
+      materialText,
+      materialSentences,
     }
 
     data.bookmarks.push(bookmark)
@@ -139,7 +152,12 @@ export class BookmarkService {
   /**
    * ブックマークをトグル（追加/削除）
    */
-  static toggleBookmark(sentenceText: string): boolean {
+  static toggleBookmark(
+    sentenceText: string,
+    sentenceIndex: number,
+    materialText: string,
+    materialSentences: string[]
+  ): boolean {
     const existing = this.getBookmarkBySentence(sentenceText)
 
     if (existing) {
@@ -147,7 +165,7 @@ export class BookmarkService {
       return this.removeBookmark(existing.bookmarkId)
     } else {
       // 追加
-      const bookmark = this.addBookmark(sentenceText)
+      const bookmark = this.addBookmark(sentenceText, sentenceIndex, materialText, materialSentences)
       return bookmark !== null
     }
   }

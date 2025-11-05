@@ -11,9 +11,11 @@ import './styles.css'
 interface BookmarkListProps {
   onClose: () => void
   onPlayBookmarks?: (sentences: string[]) => void
+  onSentenceSeek?: (sentenceText: string) => void
+  onBookmarkPlay?: (materialText: string, materialSentences: string[], sentenceIndex: number) => void
 }
 
-export const BookmarkList: React.FC<BookmarkListProps> = ({ onClose, onPlayBookmarks }) => {
+export const BookmarkList: React.FC<BookmarkListProps> = ({ onClose, onPlayBookmarks, onSentenceSeek, onBookmarkPlay }) => {
   const [filter, setFilter] = useState<BookmarkFilter>({
     masteryLevel: undefined,
     sortBy: 'addedAt',
@@ -174,7 +176,29 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({ onClose, onPlayBookm
                     </button>
                   </div>
 
-                  <div className="bookmark-sentence">{bookmark.sentenceText}</div>
+                  <div
+                    className="bookmark-sentence clickable"
+                    onClick={() => onSentenceSeek?.(bookmark.sentenceText)}
+                    title="クリックして該当文にシーク"
+                  >
+                    {bookmark.sentenceText}
+                  </div>
+
+                  {/* 再生ボタン */}
+                  {onBookmarkPlay && (
+                    <button
+                      className="play-bookmark-button"
+                      onClick={() =>
+                        onBookmarkPlay(
+                          bookmark.materialText,
+                          bookmark.materialSentences,
+                          bookmark.sentenceIndex
+                        )
+                      }
+                    >
+                      🔊 この文から音声再生
+                    </button>
+                  )}
 
                   <div className="bookmark-stats">
                     <span>🔊 {bookmark.practiceCount}回</span>

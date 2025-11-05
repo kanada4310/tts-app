@@ -214,6 +214,42 @@
   font-weight: 500;
 }
 
+.bookmark-sentence.clickable {
+  cursor: pointer;
+  padding: 8px;
+  margin: -8px -8px 4px -8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.bookmark-sentence.clickable:hover {
+  background-color: #f3f4f6;
+}
+
+/* 再生ボタン */
+.play-bookmark-button {
+  width: 100%;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.play-bookmark-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.play-bookmark-button:active {
+  transform: translateY(0);
+}
+
 .bookmark-stats {
   display: flex;
   gap: 12px;

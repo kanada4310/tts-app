@@ -5,6 +5,8 @@
 最新のセッション情報は [HANDOVER.md](HANDOVER.md) を参照してください。
 
 ## 目次
+- [セッション #25 - 2025-11-04](#セッション-25---2025-11-04)
+- [セッション #24 - 2025-10-28](#セッション-24---2025-10-28)
 - [セッション #21 - 2025-10-27](#セッション-21---2025-10-27)
 - [セッション #20 - 2025-10-27](#セッション-20---2025-10-27)
 - [セッション #19 - 2025-10-26](#セッション-19---2025-10-26)
@@ -22,6 +24,224 @@
 - [セッション #3 - 2025-10-20](#セッション-3---2025-10-20)
 - [セッション #2 - 2025-10-20](#セッション-2---2025-10-20)
 - [セッション #1 - 2025-10-20](#セッション-1---2025-10-20)
+
+---
+
+## セッション #25 - 2025-11-04（✅ 完了）
+
+### 実施内容
+
+このセッションでは、**学習機能（学習記録＋ブックマーク機能）の完全実装**を行いました。
+
+#### 1. 基盤サービス層の実装
+
+**新規作成ファイル**:
+- `frontend/src/types/learning.ts` - 全型定義（LearningSession, LearningStats, Bookmark, LearningData, BookmarkFilter）
+- `frontend/src/services/storage/localStorageService.ts` - 型安全なlocalStorage操作、容量管理
+- `frontend/src/services/learning/learningSessionService.ts` - セッション管理、統計計算
+- `frontend/src/services/learning/bookmarkService.ts` - ブックマーク管理、フィルタリング
+- `frontend/src/services/learning/index.ts` - エクスポート集約
+
+**実装内容**:
+- SHA-256ハッシュによるsentenceId/materialId生成
+- localStorage容量チェック（5MB上限）
+- セッション自動管理（開始、終了、30分タイムアウト）
+- ストリーク計算（連続学習日数）
+- 習得度管理（1-5段階の星評価）
+
+#### 2. 学習ダッシュボードUI実装
+
+**新規作成ファイル**:
+- `frontend/src/components/features/LearningDashboard/LearningDashboard.tsx` - メインコンポーネント
+- `frontend/src/components/features/LearningDashboard/styles.css` - スタイル
+- `frontend/src/components/features/LearningDashboard/index.ts` - エクスポート
+
+**実装内容**:
+- GitHub風カレンダー表示（30日間の学習履歴）
+- 学習統計（総学習時間、教材数、継続日数）
+- 教材履歴一覧（日時、文数、学習時間）
+- モーダル形式（オーバーレイ）
+- レスポンシブデザイン対応
+
+#### 3. ブックマーク機能UI実装
+
+**新規作成ファイル**:
+- `frontend/src/components/features/BookmarkList/BookmarkList.tsx` - メインコンポーネント
+- `frontend/src/components/features/BookmarkList/styles.css` - スタイル
+- `frontend/src/components/features/BookmarkList/index.ts` - エクスポート
+
+**実装内容**:
+- ブックマークカード一覧（グリッドレイアウト）
+- 習得度フィルタ（星1-5、すべて）
+- ソート機能（追加日、最終練習日、練習回数、習得度）
+- メモ編集機能（インライン編集）
+- 「すべて再生」機能
+- 削除機能（確認ダイアログ付き）
+
+#### 4. SentenceListへのブックマーク統合
+
+**更新ファイル**: `frontend/src/components/features/SentenceList/SentenceList.tsx`, `styles.css`
+
+**実装内容**:
+- 各文に星マーク（☆/⭐）追加
+- クリックでブックマーク切り替え
+- ブックマーク状態の永続化
+- ローカルステート管理（UI即時反映）
+
+#### 5. App.tsxへの統合
+
+**更新ファイル**: `frontend/src/App.tsx`
+
+**実装内容**:
+- useLearningSession カスタムフック作成
+- セッション自動管理（音声生成時に開始）
+- ヘッダーに「📊 学習記録」「⭐ ブックマーク」ボタン追加
+- モーダル表示管理
+
+### 技術的決定事項
+
+#### 決定1: localStorage容量管理の実装
+
+**実装**:
+- 5MB上限チェック（LocalStorageService.checkCapacity）
+- 上限超過時は古いセッションを自動削除（50セッション以降）
+- エラーハンドリング（QuotaExceededError）
+
+#### 決定2: カスタムフックによる状態管理
+
+**実装**: `useLearningSession`
+- startSession, endSession, recordPlay を提供
+- beforeunloadイベントで自動終了
+- 30分無操作タイムアウト（将来拡張用）
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `frontend/src/types/learning.ts` （約150行）
+- [x] `frontend/src/services/storage/localStorageService.ts` （約100行）
+- [x] `frontend/src/services/learning/learningSessionService.ts` （約250行）
+- [x] `frontend/src/services/learning/bookmarkService.ts` （約200行）
+- [x] `frontend/src/services/learning/index.ts` （約10行）
+- [x] `frontend/src/components/features/LearningDashboard/LearningDashboard.tsx` （約200行）
+- [x] `frontend/src/components/features/LearningDashboard/styles.css` （約400行）
+- [x] `frontend/src/components/features/LearningDashboard/index.ts` （約3行）
+- [x] `frontend/src/components/features/BookmarkList/BookmarkList.tsx` （約250行）
+- [x] `frontend/src/components/features/BookmarkList/styles.css` （約380行）
+- [x] `frontend/src/components/features/BookmarkList/index.ts` （約3行）
+- [x] `frontend/src/hooks/useLearningSession.ts` （約60行）
+
+#### 更新ファイル
+- [x] `frontend/src/App.tsx` - 学習機能統合、モーダル管理
+- [x] `frontend/src/components/features/SentenceList/SentenceList.tsx` - ブックマーク追加
+- [x] `frontend/src/components/features/SentenceList/styles.css` - 星マークスタイル
+
+#### Git commits
+- [x] セッション#25の完全実装コミット作成
+
+---
+
+## セッション #24 - 2025-10-28（✅ 完了）
+
+### 実施内容
+
+このセッションでは、**学習機能（学習記録＋ブックマーク機能）の詳細設計**を完了しました。
+
+#### 1. 既存コードベースの包括的調査
+
+**手順**:
+- Task toolでExploreエージェントを起動（very thorough）
+- localStorage使用状況、状態管理パターン、データ構造、サービス層、UIコンポーネントパターンを調査
+
+**調査結果**:
+- **localStorageの現状**: チュートリアル完了フラグ、PWAプロンプト非表示フラグのみ使用、サービス層なし
+- **状態管理**: React Hooks + Props Drilling、グローバル状態管理なし
+- **データ構造**: 型定義が`types/`に整理済み（api.ts、audio.ts、common.ts、AudioPlayer固有types.ts）
+- **サービス層**: `services/api/`（client, ocr, tts）、`services/image/compression.ts`のみ、`services/storage/`は空
+- **UIパターン**: Hooks-basedアーキテクチャ、カード型UI、紫青グラデーション、レスポンシブデザイン
+
+**成果物**: 既存コードベース調査レポート（markdown形式、約2,000行）
+
+#### 2. 既存ドキュメントの確認
+
+**読み込みファイル**:
+- `docs/LEARNING_ENHANCEMENT.md` - 学習効果向上のための機能拡張提案（SLA、大学受験英語の知見）
+- `docs/USABILITY_REPORT.md` - ユーザビリティ評価レポート（高校生適合性分析）
+
+**確認内容**:
+- フェーズ3A（アクティブ学習支援）: リピート再生、文ごとの一時停止、テキスト表示/非表示 → ✅実装済み
+- フェーズ3B（学習管理・記録）: 学習記録、ブックマーク、段階的練習モード → ❌未実装
+- 期待効果: 継続日数+114%、学習時間+100%、復習率+200%、モチベーション+21%
+
+#### 3. 学習機能詳細設計書の作成
+
+**ファイル**: `docs/LEARNING_FEATURES_DESIGN.md` (約1,200行)
+
+**内容**:
+1. **概要と目標**: 目標指標（継続日数+114%、モチベーション+21%）
+2. **背景と理論的根拠**: SLA、大学受験英語、Duolingo/Ankiの成功要因
+3. **機能要件**:
+   - 学習記録（セッション管理、統計、カレンダー、ストリーク🔥）
+   - ブックマーク（星1-5、フィルタリング、習得度管理）
+4. **データ構造設計**: TypeScript型定義（LearningSession, LearningStats, Bookmark, LearningData）
+5. **サービス層設計**:
+   - `LocalStorageService` - 型安全なlocalStorage操作、容量管理
+   - `LearningService` - セッション管理、統計計算、ストリーク計算
+   - `BookmarkService` - ブックマーク管理、フィルタリング
+6. **UI/UXデザイン**: ワイヤーフレーム（LearningDashboard、BookmarkList、SentenceList統合）
+7. **既存システムとの統合**: App.tsxへの統合方法、AudioPlayerとの連携
+8. **実装計画**: 4フェーズ、7-11時間（フェーズ1: 基盤、フェーズ2: ブックマーク、フェーズ3: 学習記録UI、フェーズ4: 統合・テスト）
+9. **技術的考慮事項**: localStorage容量管理、Date型処理、パフォーマンス最適化、SHA-256ハッシュ
+10. **期待される効果**: ROI ⭐⭐⭐⭐⭐
+
+**変更ファイル**: `docs/LEARNING_FEATURES_DESIGN.md`（新規作成）
+
+### 技術的決定事項
+
+#### 決定1: localStorageを採用（IndexedDBではなく）
+
+**理由**:
+- サーバー不要（既存アーキテクチャを維持）
+- 実装が容易（7-11時間で完了可能）
+- 5-10MBの容量で十分（100セッション + 500ブックマーク）
+- 将来的にIndexedDBへの移行パスも確保
+
+**代替案**:
+- IndexedDB: より大容量だが実装複雑（+5-10時間）
+- バックエンドDB: サーバー必要で大幅改修（+20-30時間）
+
+#### 決定2: セッション自動管理
+
+**設計**:
+- 音声生成時に自動開始
+- 30分無操作で自動終了
+- beforeunloadイベントでブラウザ閉じる際も記録
+
+**理由**: ユーザー操作不要（UX向上）、学習記録の正確性向上
+
+#### 決定3: SHA-256ハッシュでsentenceIdを生成
+
+**理由**:
+- 文の一意識別が可能
+- 同じ文を複数回ブックマークしても重複しない
+- Web Crypto API（`crypto.subtle.digest`）で標準実装
+
+#### 決定4: Hooks-basedアーキテクチャの踏襲
+
+**理由**:
+- 既存のAudioPlayerと同じパターン（useAudioPlayback、useRepeatControl等）
+- コードの一貫性維持
+- 関心の分離
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `docs/LEARNING_FEATURES_DESIGN.md` - 学習機能詳細設計書（約1,200行）
+
+#### 更新ファイル
+- なし（設計フェーズのため）
+
+#### Git commits
+- 未実施（ドキュメントレビュー待ち）
 
 ---
 
