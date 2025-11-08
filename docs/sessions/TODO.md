@@ -1,6 +1,6 @@
 # TODO
 
-最終更新: 2025-11-08（セッション#27: Supabase移行 フェーズ1 完了）
+最終更新: 2025-11-08（セッション#28: Supabase移行 フェーズ2 完了）
 
 ## 🟢 完了済み（セッション#27で実装完了）
 
@@ -335,98 +335,116 @@
 
 ---
 
-## 🔴 最優先（次回セッション#28）
+## 🟢 完了済み（セッション#28で実装完了）
 
-### ✅ ユーザー作業: Supabaseプロジェクト作成（所要時間: 約30分）
+### Supabase移行 フェーズ2: 認証UI実装＋音声キャッシュ ✅ 完了
 
-**前提条件**: セッション#27でSupabase基盤構築が完了しました。
+**完了日**: 2025-11-08（セッション#28）
+**所要時間**: 約3-4時間（実績）
 
-**実施手順**: `docs/SUPABASE_SETUP_GUIDE.md` を参照
+- [x] **認証UI実装** ✅（1-2時間）
+  - [x] Login.tsx 作成（メール/Google/GitHub認証対応）
+  - [x] SignUp.tsx 作成（パスワード確認、確認メール送信）
+  - [x] ResetPassword.tsx 作成（パスワードリセットフロー）
+  - [x] Auth.css 作成（認証ページ共通スタイル）
+  - [x] pages/index.ts 作成（エクスポート管理）
+  - ROI: ⭐⭐⭐⭐⭐
 
-1. **Supabaseアカウント作成とプロジェクト作成**（10分）
-   - https://supabase.com でアカウント作成（GitHub推奨）
-   - 新規プロジェクト: Name `tts-learning-app`, Region `Tokyo`
-   - Database Password 設定（必ずメモ）
+- [x] **ProtectedRoute＋React Router統合** ✅（1時間）
+  - [x] ProtectedRoute.tsx 作成
+  - [x] useAuth.ts フック作成
+  - [x] App.tsx リファクタリング（BrowserRouter）
+  - [x] MainPage.tsx 作成（ログアウトボタン追加）
+  - [x] React Router導入（react-router-dom@6.22.0）
+  - ROI: ⭐⭐⭐⭐⭐
 
-2. **データベーススキーマ作成**（5分）
-   - SQL Editorで `database/schema.sql` を実行
-   - SQL Editorで `database/rls_policies.sql` を実行
+- [x] **localStorage → Supabase 移行ツール** ✅（1時間）
+  - [x] migration.ts 作成
+  - [x] needsMigration() 実装
+  - [x] migrateToSupabase() 実装
+  - ROI: ⭐⭐⭐⭐⭐
 
-3. **Storageバケット作成**（3分）
-   - Storage → Create bucket: `audio-files` (Public)
+- [x] **音声キャッシュサービス実装** ✅（2-3時間）
+  - [x] audio_cache_service.py 作成
+  - [x] SHA-256ハッシュ生成、キャッシュ検索
+  - [x] Supabase Storage統合
+  - [x] audio_cache テーブル保存
+  - ROI: ⭐⭐⭐⭐⭐
 
-4. **API Keys取得**（2分）
-   - Settings → API で以下をコピー:
-     - Project URL
-     - anon public key
-     - service_role key（⚠️絶対に公開しない）
+- [x] **TTSエンドポイント修正** ✅（1時間）
+  - [x] tts.py 更新（AudioCacheService統合）
+  - [x] キャッシュヒット時: Supabase Storage URL返却
+  - [x] キャッシュミス時: OpenAI TTS生成→保存
+  - ROI: ⭐⭐⭐⭐⭐
 
-5. **環境変数設定**（5分）
-   - `frontend/.env` と `backend/.env` を作成
-   - API Keys を設定
-
-6. **依存関係インストール**（2分）
-   - フロントエンド: `cd frontend && npm install`
-   - バックエンド: `cd backend && pip install -r requirements.txt`
+**セッション#28合計**: 約3-4時間
 
 ---
 
-### 📋 次回セッション#28で実施（Supabase移行 フェーズ2: 認証UI実装）
+## 🔴 最優先（次回セッション#29）
+
+### 📋 Supabase移行 フェーズ3: テスト＋UI実装＋デプロイ
 
 **所要時間**: 3-4時間（見積もり）
 **優先度**: 🔴 最優先
 
-#### タスク1: 認証UIの実装（1-2時間）
+#### タスク1: ローカル環境テスト（1-2時間）
 
-- [ ] **ログイン・サインアップ画面**
-  - [ ] `frontend/src/pages/Login.tsx` 作成
-  - [ ] `frontend/src/pages/SignUp.tsx` 作成
-  - [ ] フォームバリデーション、エラーハンドリング
-  - [ ] Google/GitHub OAuth ボタン追加
-  - 所要時間: 1時間
+- [ ] **認証フローテスト**
+  - [ ] npm run dev でフロントエンド起動
+  - [ ] python -m uvicorn app.main:app --reload でバックエンド起動
+  - [ ] サインアップ → ログイン → メインアプリ遷移を確認
+  - [ ] ログアウト機能確認
+  - [ ] 未ログイン時のリダイレクト確認
+  - 所要時間: 30分
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **パスワードリセット機能**
-  - [ ] `frontend/src/pages/ResetPassword.tsx` 作成
-  - [ ] メール送信フロー実装
+- [ ] **音声キャッシュテスト**
+  - [ ] 同じテキストで2回TTS生成
+  - [ ] 2回目はキャッシュヒット（from_cache: true）を確認
+  - [ ] Supabase Storageにファイルが保存されていることを確認
+  - [ ] audio_cacheテーブルにレコードが保存されていることを確認
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [ ] **エラーハンドリングテスト**
+  - [ ] ネットワークエラー時の動作確認
+  - [ ] Supabase未設定時の後方互換性確認（base64 blobs返却）
   - 所要時間: 30分
   - ROI: ⭐⭐⭐⭐
 
-- [ ] **保護されたルート**
-  - [ ] `frontend/src/components/ProtectedRoute.tsx` 作成
-  - [ ] React Routerとの統合
-  - [ ] 未ログイン時のリダイレクト
-  - 所要時間: 30分
-  - ROI: ⭐⭐⭐⭐⭐
+#### タスク2: フロントエンドAPI修正（1時間）
 
-#### タスク2: localStorage → Supabase 移行ツール（1時間）
-
-- [ ] **移行スクリプト作成**
-  - [ ] `frontend/src/utils/migration.ts` 作成
-  - [ ] localStorageから学習データ・ブックマーク取得
-  - [ ] Supabaseへの自動移行（materials, bookmarks, learning_sessions）
-  - [ ] 移行完了フラグ管理（`migration_completed: true`）
+- [ ] **performTTSSeparated() 修正**
+  - [ ] `frontend/src/services/api/tts.ts` 更新
+  - [ ] audio_urls レスポンス対応（URL配列からBlob生成）
+  - [ ] from_cache フラグ処理
+  - [ ] Supabase未設定時の後方互換性（audio_segments対応）
   - 所要時間: 1時間
   - ROI: ⭐⭐⭐⭐⭐
 
-#### タスク3: 音声キャッシュサービス実装（バックエンド）（2-3時間）
+#### タスク3: 移行ツールUI実装（1時間）
 
-- [ ] **音声キャッシュサービス作成**
-  - [ ] `backend/app/services/audio_cache_service.py` 作成
-  - [ ] SHA-256ハッシュ生成、キャッシュ検索
-  - [ ] Supabase Storage統合（アップロード、公開URL取得）
-  - [ ] audio_cache テーブルへの保存
-  - 所要時間: 2時間
-  - ROI: ⭐⭐⭐⭐⭐
-
-- [ ] **TTSエンドポイント修正**
-  - [ ] `backend/app/api/routes/tts.py` 更新
-  - [ ] キャッシュヒット時は即座に返却
-  - [ ] キャッシュミス時はOpenAI TTS生成→保存
+- [ ] **移行バナー追加**
+  - [ ] MainPage.tsx に移行バナー追加
+  - [ ] 「データ移行しますか？」確認ダイアログ
+  - [ ] 移行進捗表示（materials: X個、bookmarks: Y個、sessions: Z個）
+  - [ ] 移行完了メッセージ
+  - [ ] エラーハンドリング（移行失敗時のメッセージ）
   - 所要時間: 1時間
+  - ROI: ⭐⭐⭐⭐
+
+#### タスク4: デプロイ更新（30分-1時間）
+
+- [ ] **Railway＋Vercelデプロイ**
+  - [ ] 環境変数設定（Supabase API Keys）
+  - [ ] Railway: SUPABASE_URL, SUPABASE_SERVICE_KEY
+  - [ ] Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+  - [ ] 本番環境でのE2Eテスト
+  - 所要時間: 30分-1時間
   - ROI: ⭐⭐⭐⭐⭐
 
-**次回セッション#28合計**: 3-4時間
+**次回セッション#29合計**: 3-4時間
 
 ---
 
