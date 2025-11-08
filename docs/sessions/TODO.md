@@ -1,6 +1,6 @@
 # TODO
 
-最終更新: 2025-11-08（セッション#28: Supabase移行 フェーズ2 完了）
+最終更新: 2025-11-08（セッション#29: Supabase移行 フェーズ3 完了）
 
 ## 🟢 完了済み（セッション#27で実装完了）
 
@@ -381,70 +381,115 @@
 
 ---
 
-## 🔴 最優先（次回セッション#29）
+## 🟢 完了済み（セッション#29で実装完了）
 
-### 📋 Supabase移行 フェーズ3: テスト＋UI実装＋デプロイ
+### 📋 Supabase移行 フェーズ3: テスト＋UI実装＋バグ修正 ✅ 完了
 
-**所要時間**: 3-4時間（見積もり）
+**完了日**: 2025-11-08（セッション#29）
+**所要時間**: 約3時間（実績）
 **優先度**: 🔴 最優先
 
-#### タスク1: ローカル環境テスト（1-2時間）
+#### タスク1: バックエンド設定修正 ✅
 
-- [ ] **認証フローテスト**
-  - [ ] npm run dev でフロントエンド起動
-  - [ ] python -m uvicorn app.main:app --reload でバックエンド起動
-  - [ ] サインアップ → ログイン → メインアプリ遷移を確認
-  - [ ] ログアウト機能確認
-  - [ ] 未ログイン時のリダイレクト確認
-  - 所要時間: 30分
+- [x] **config.py修正**
+  - [x] Supabase環境変数フィールド追加（supabase_url, service_key, anon_key）
+  - [x] Pydantic Settingsで自動読み込み
+  - 所要時間: 10分
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **音声キャッシュテスト**
-  - [ ] 同じテキストで2回TTS生成
-  - [ ] 2回目はキャッシュヒット（from_cache: true）を確認
-  - [ ] Supabase Storageにファイルが保存されていることを確認
-  - [ ] audio_cacheテーブルにレコードが保存されていることを確認
-  - 所要時間: 30分
+- [x] **supabase.py修正**
+  - [x] os.getenv() → settings参照に変更
+  - [x] Unicode絵文字 → ASCII文字に変更（Windows cp932対応）
+  - 所要時間: 15分
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **エラーハンドリングテスト**
-  - [ ] ネットワークエラー時の動作確認
-  - [ ] Supabase未設定時の後方互換性確認（base64 blobs返却）
-  - 所要時間: 30分
-  - ROI: ⭐⭐⭐⭐
+#### タスク2: フロントエンドAPI修正 ✅
 
-#### タスク2: フロントエンドAPI修正（1時間）
-
-- [ ] **performTTSSeparated() 修正**
-  - [ ] `frontend/src/services/api/tts.ts` 更新
-  - [ ] audio_urls レスポンス対応（URL配列からBlob生成）
-  - [ ] from_cache フラグ処理
-  - [ ] Supabase未設定時の後方互換性（audio_segments対応）
+- [x] **performTTSSeparated() 修正**
+  - [x] `frontend/src/services/api/tts.ts` 更新
+  - [x] audio_urls レスポンス対応（URL配列からBlob生成）
+  - [x] from_cache フラグ処理
+  - [x] Supabase未設定時の後方互換性（audio_segments対応）
   - 所要時間: 1時間
   - ROI: ⭐⭐⭐⭐⭐
 
-#### タスク3: 移行ツールUI実装（1時間）
+#### タスク3: 移行ツールUI実装 ✅
 
-- [ ] **移行バナー追加**
-  - [ ] MainPage.tsx に移行バナー追加
-  - [ ] 「データ移行しますか？」確認ダイアログ
-  - [ ] 移行進捗表示（materials: X個、bookmarks: Y個、sessions: Z個）
-  - [ ] 移行完了メッセージ
-  - [ ] エラーハンドリング（移行失敗時のメッセージ）
+- [x] **移行バナー追加**
+  - [x] MainPage.tsx に移行バナー追加
+  - [x] 「データ移行しますか？」確認ダイアログ
+  - [x] 移行進捗表示（materials: X個、bookmarks: Y個、sessions: Z個）
+  - [x] 移行完了メッセージ
+  - [x] エラーハンドリング（移行失敗時のメッセージ）
+  - [x] MainPage.css: グラデーション背景＋アニメーション
   - 所要時間: 1時間
   - ROI: ⭐⭐⭐⭐
 
-#### タスク4: デプロイ更新（30分-1時間）
-
-- [ ] **Railway＋Vercelデプロイ**
-  - [ ] 環境変数設定（Supabase API Keys）
-  - [ ] Railway: SUPABASE_URL, SUPABASE_SERVICE_KEY
-  - [ ] Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-  - [ ] 本番環境でのE2Eテスト
-  - 所要時間: 30分-1時間
+- [x] **migration.ts修正**
+  - [x] onProgress コールバック追加
+  - [x] 進捗メッセージ表示対応
+  - 所要時間: 15分
   - ROI: ⭐⭐⭐⭐⭐
 
-**次回セッション#29合計**: 3-4時間
+#### タスク4: ブックマーク音声再生バグ修正 ✅
+
+- [x] **useAudioSegments.ts修正**
+  - [x] externalSentenceIndex 対応
+  - [x] 初期セグメントインデックスを外部から指定可能に
+  - 所要時間: 20分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **MainPage.tsx: handleBookmarkPlay() リライト**
+  - [x] 状態更新タイミング問題を解決
+  - [x] performTTSSeparated() を直接呼び出し
+  - [x] デバッグログ追加（[Bookmark Play]プレフィックス）
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+#### タスク5: テスト ✅
+
+- [x] **Google OAuth認証テスト**
+  - [x] ログイン成功確認
+  - 所要時間: 5分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **音声キャッシュテスト**
+  - [x] キャッシュヒット/ミス正常動作確認
+  - [x] Supabase Storageに保存確認
+  - 所要時間: 10分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **学習記録・ブックマーク機能テスト**
+  - [x] 記録保存確認
+  - [x] ブックマーク作成＋指定文からの再生成功
+  - 所要時間: 15分
+  - ROI: ⭐⭐⭐⭐⭐
+
+**セッション#29合計**: 約3時間
+
+---
+
+## 🔴 最優先（次回セッション#30）
+
+### 🚀 Railway＋Vercelデプロイ更新
+
+**所要時間**: 30分-1時間（見積もり）
+**優先度**: 🔴 最優先
+
+- [ ] **環境変数設定（Supabase API Keys）**
+  - [ ] Railway: SUPABASE_URL, SUPABASE_SERVICE_KEY 追加
+  - [ ] Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 追加
+  - 所要時間: 15分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [ ] **本番環境でのE2Eテスト**
+  - [ ] Google OAuth認証テスト
+  - [ ] 音声キャッシュテスト
+  - [ ] ブックマーク音声再生テスト
+  - 所要時間: 15-30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+**次回セッション#30合計**: 30分-1時間
 
 ---
 
