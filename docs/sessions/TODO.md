@@ -469,27 +469,39 @@
 
 ---
 
-## 🔴 最優先（次回セッション#30）
+## 🟢 完了済み（セッション#30で実装完了）
 
-### 🚀 Railway＋Vercelデプロイ更新
+### 🚀 Railway＋Vercelデプロイ更新 ✅ 完了
 
-**所要時間**: 30分-1時間（見積もり）
-**優先度**: 🔴 最優先
+**完了日**: 2025-11-08（セッション#30）
+**所要時間**: 約1.5時間（実績）
 
-- [ ] **環境変数設定（Supabase API Keys）**
-  - [ ] Railway: SUPABASE_URL, SUPABASE_SERVICE_KEY 追加
-  - [ ] Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 追加
+- [x] **環境変数設定（Supabase API Keys）** ✅
+  - [x] Railway: SUPABASE_URL, SUPABASE_SERVICE_KEY 追加
+  - [x] Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY 追加
   - 所要時間: 15分
   - ROI: ⭐⭐⭐⭐⭐
 
-- [ ] **本番環境でのE2Eテスト**
-  - [ ] Google OAuth認証テスト
-  - [ ] 音声キャッシュテスト
-  - [ ] ブックマーク音声再生テスト
-  - 所要時間: 15-30分
+- [x] **vercel.json作成（SPAルーティング設定）** ✅
+  - [x] React Routerの404エラー解決
+  - [x] すべてのルートを/index.htmlにリダイレクト
+  - 所要時間: 15分
   - ROI: ⭐⭐⭐⭐⭐
 
-**次回セッション#30合計**: 30分-1時間
+- [x] **Supabase URL Configuration設定** ✅
+  - [x] Site URLを本番URLに変更
+  - [x] Redirect URLsに本番URLを追加
+  - 所要時間: 10分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **本番環境でのE2Eテスト** ✅
+  - [x] Google OAuth認証テスト（成功）
+  - [x] 音声キャッシュテスト（from_cache: false → true 確認）
+  - [x] ブックマーク音声再生テスト（指定文から再生成功）
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+**セッション#30合計**: 約1.5時間
 
 ---
 

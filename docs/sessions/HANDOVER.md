@@ -5,6 +5,297 @@
 
 ---
 
+## セッション #30 - 2025-11-08（✅ 完了）
+
+### 実施内容
+
+このセッションでは、**Railway＋Vercelデプロイ更新とSupabase移行の本番環境完全統合**を完了しました。環境変数設定、SPAルーティング修正、Supabase URL設定を実施し、本番環境でのE2Eテストをすべて成功させました。
+
+#### 1. Railway環境変数設定（15分）
+
+**実施内容**:
+- Railway Dashboard → Variables で環境変数追加
+  - `SUPABASE_URL`: SupabaseプロジェクトURL
+  - `SUPABASE_SERVICE_KEY`: Service roleキー（⚠️公開禁止）
+
+**結果**:
+- Railwayが自動再デプロイ
+- バックエンドでSupabase機能が有効化
+
+---
+
+#### 2. Vercel環境変数設定（15分）
+
+**実施内容**:
+- Vercel Dashboard → Settings → Environment Variables で環境変数追加
+  - `VITE_SUPABASE_URL`: SupabaseプロジェクトURL
+  - `VITE_SUPABASE_ANON_KEY`: 匿名キー（公開可能）
+
+**問題**: 環境変数追加後も反映されない
+
+**原因**: Vercelは環境変数追加後、自動再デプロイされない
+
+**解決**: 手動で再デプロイを実行
+
+---
+
+#### 3. vercel.json作成（SPAルーティング設定）（15分）
+
+**問題**:
+```
+GET https://tts-xxx.vercel.app/login 404 (Not Found)
+```
+
+**原因**: React Router（BrowserRouter）を使用しているSPAでは、Vercelにルーティング設定が必要
+
+**解決**:
+- `frontend/vercel.json` を作成
+- すべてのルート（`/login`, `/signup`, `/` など）を `index.html` にリダイレクト
+
+**変更ファイル**: `frontend/vercel.json`
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+```
+
+**技術的決定**:
+- **rewrites vs redirects**: rewritesは内部リダイレクト（URLは変わらない）、redirectsは外部リダイレクト（URLが変わる）。SPAではrewritesが適切。
+
+---
+
+#### 4. Supabase URL Configuration設定（10分）
+
+**問題**:
+```
+このサイトにアクセスできません
+localhost で接続が拒否されました。
+```
+
+**原因**: SupabaseのSite URLが `http://localhost:5173` のままで、OAuth認証後にlocalhostへリダイレクトされる
+
+**解決**:
+- Supabase Dashboard → Authentication → URL Configuration
+  - **Site URL**: `https://tts-app-ycaz.vercel.app` に変更
+  - **Redirect URLs**: `https://tts-app-ycaz.vercel.app/**` を追加
+
+**技術的決定**:
+- **Site URL**: OAuth認証後のデフォルトリダイレクト先
+- **Redirect URLs**: Supabaseが許可するリダイレクト先のホワイトリスト（`/**` はワイルドカード）
+
+---
+
+#### 5. 本番環境E2Eテスト（30分）
+
+**✅ テスト1: Google OAuth認証テスト**
+- Googleアカウントでログイン成功
+- ログアウト機能正常
+- ブラウザコンソールエラーなし
+
+**✅ テスト2: 音声キャッシュテスト**
+- 1回目のTTS生成: `from_cache: false`（約5〜10秒）
+- 2回目のTTS生成: `from_cache: true`（約1〜2秒）
+- Supabase Storageに音声ファイル保存確認
+- OpenAI APIコスト削減効果を確認
+
+**✅ テスト3: ブックマーク音声再生テスト**
+- ブックマーク作成成功（☆ → ★）
+- ブックマークリストに表示
+- 「🔊 この文から音声再生」ボタンで指定した文から再生成功
+- ブラウザコンソールエラーなし
+
+---
+
+### 技術的決定事項
+
+#### 決定1: Vercel SPAルーティング設定
+
+**問題**: React Routerの `/login`, `/signup` などのルートが404エラー
+
+**決定**: `vercel.json` でrewritesを設定
+
+**理由**:
+- Vercelは物理的なファイル（`/login.html`）を探すが、SPAでは存在しない
+- すべてのルートを `index.html` にリダイレクトし、React Routerに処理を任せる
+
+**代替案**:
+- HashRouter（`/#/login`）: URLが汚い、SEOに不利
+- Next.js: オーバースペック、既存構成の大幅変更が必要
+
+---
+
+#### 決定2: Supabase Site URL設定
+
+**問題**: OAuth認証後にlocalhostへリダイレクトされる
+
+**決定**: Site URLを本番URLに変更
+
+**理由**:
+- ローカル開発時は `http://localhost:5173` を設定
+- 本番環境では `https://tts-app-ycaz.vercel.app` に変更が必要
+- Site URLはOAuth認証後のデフォルトリダイレクト先として使用される
+
+**注意**:
+- Redirect URLsには複数のURLを設定可能（本番URL + ローカルURL）
+- `/**` ワイルドカードですべてのパスを許可
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: Supabase環境変数が反映されない
+
+**症状**:
+```
+⚠️ Supabase環境変数が設定されていません。
+VITE_SUPABASE_URL: 未設定
+VITE_SUPABASE_ANON_KEY: 未設定
+Uncaught Error: supabaseUrl is required.
+```
+
+**原因**: Vercelで環境変数を追加しても、既存のデプロイには反映されない
+
+**解決方法**:
+1. Vercel Dashboard → Settings → Environment Variables で設定
+2. **「Production」にチェックを入れる**（重要）
+3. 手動で再デプロイ（Deployments → Redeploy）、またはGitHubにプッシュ
+
+**所要時間**: 30分（トラブルシューティング含む）
+
+---
+
+#### 問題2: /loginルートが404エラー
+
+**症状**:
+```
+GET https://tts-xxx.vercel.app/login 404 (Not Found)
+```
+
+**原因**: React RouterのSPAルーティング設定がVercelに反映されていない
+
+**解決方法**:
+1. `frontend/vercel.json` を作成
+2. すべてのルートを `/index.html` にrewrite
+3. GitHubにプッシュして再デプロイ
+
+**所要時間**: 15分
+
+---
+
+#### 問題3: Google OAuth認証後にlocalhostへリダイレクト
+
+**症状**:
+```
+このサイトにアクセスできません
+localhost で接続が拒否されました。
+```
+
+**原因**: SupabaseのSite URLが `http://localhost:5173` のまま
+
+**解決方法**:
+1. Supabase Dashboard → Authentication → URL Configuration
+2. Site URLを `https://tts-app-ycaz.vercel.app` に変更
+3. Redirect URLsに `https://tts-app-ycaz.vercel.app/**` を追加
+
+**所要時間**: 10分
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### 🎯 デプロイ完了！
+
+**本番環境URL**: https://tts-app-ycaz.vercel.app
+
+**実装された機能**:
+- ✅ Google OAuth認証（Supabase）
+- ✅ 音声キャッシュ（Supabase Storage + Database）
+- ✅ 学習記録・ブックマーク機能（Supabase Database）
+- ✅ ブックマークから音声再生
+- ✅ OpenAI TTS APIコスト削減（50〜96%）
+
+#### すぐに着手できるタスク（今後の拡張）
+
+現時点で**全ての計画タスクが完了**しました。今後のタスクは以下の通り：
+
+1. **🟢 生徒フィードバックの収集**（次のステップ）
+   - 高校生に本番URLを共有
+   - 使用感、バグ、改善点のフィードバック収集
+   - 所要時間: 1〜2週間
+
+2. **🟢 フィードバックに基づく改善**
+   - UI/UXの改善
+   - バグ修正
+   - 新機能の検討
+
+3. **🔵 オプション機能（低優先度）**
+   - IndexedDBキャッシュ実装
+   - フロントエンドテスト実装
+   - CI/CD設定
+
+#### 注意事項
+
+- **⚠️ Supabase無料枠制限**: 500MB DB、1GB Storage（超過前にProプラン検討）
+- **⚠️ OpenAI API使用量監視**: 音声キャッシュでコスト削減されているが、定期的に確認
+- **⚠️ Railway無料クレジット**: 初回$5クレジット（使用状況を監視）
+
+#### 参考ドキュメント
+
+**本番環境**:
+- フロントエンド: https://tts-app-ycaz.vercel.app
+- バックエンド: https://tts-app-production.up.railway.app
+- Supabase: https://supabase.com/dashboard
+
+**ドキュメント**:
+- `docs/DEPLOYMENT.md` - デプロイ手順
+- `docs/SUPABASE_SETUP_GUIDE.md` - Supabaseセットアップ手順
+- `docs/USER_GUIDE.md` - 生徒向け使用ガイド
+
+---
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `frontend/vercel.json` - Vercel SPAルーティング設定（8行）
+
+#### 更新ファイル
+- [x] `docs/sessions/TODO.md` - セッション#30完了記録
+- [x] Railway環境変数（SUPABASE_URL, SUPABASE_SERVICE_KEY）
+- [x] Vercel環境変数（VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY）
+- [x] Supabase URL Configuration（Site URL, Redirect URLs）
+
+#### Git commits
+- [x] `df29447` - fix: Vercelルーティング設定追加（SPA対応）
+- [x] リモートへプッシュ完了 ✅
+
+---
+
+### 統計情報
+- 作業時間: 約1.5時間
+- 完了タスク: 9個
+  1. Railway環境変数設定
+  2. Vercel環境変数設定
+  3. vercel.json作成
+  4. Supabase URL Configuration設定
+  5. Google OAuth認証テスト
+  6. 音声キャッシュテスト
+  7. ブックマーク音声再生テスト
+  8. TODO.md更新
+  9. Gitコミット＆プッシュ
+- コミット数: 1
+- 変更ファイル: 1（新規）
+- 追加行数: 8行
+- 環境変数設定: 4個（Railway: 2, Vercel: 2）
+- E2Eテスト: 3項目すべて成功
+
+---
+
 ## セッション #29 - 2025-11-08（✅ 完了）
 
 ### 実施内容
