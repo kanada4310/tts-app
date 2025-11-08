@@ -32,6 +32,7 @@ export function AudioPlayer({
   segmentDurations,
   sourceText,
   sourceSentences,
+  externalSentenceIndex,
   onPlaybackComplete,
   onSentenceChange,
   onPlayStateChange,
@@ -60,6 +61,7 @@ export function AudioPlayer({
     audioRef,
     audioSegments,
     segmentDurations,
+    externalSentenceIndex,
     onSegmentChange: onSentenceChange,
   })
 

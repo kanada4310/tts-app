@@ -87,7 +87,7 @@ export async function performTTSWithTimings(
  * @param sentences - Array of sentences
  * @param voice - Voice type (default: 'nova')
  * @param format - Audio format (default: 'mp3')
- * @returns Object with array of audio blobs, durations, and total duration
+ * @returns Object with array of audio blobs, durations, total duration, and cache info
  */
 export async function performTTSSeparated(
   text: string,
@@ -98,6 +98,7 @@ export async function performTTSSeparated(
   audioBlobs: Blob[]
   durations: number[]
   totalDuration: number
+  fromCache?: boolean
 }> {
   const request: TTSRequest = {
     text,
@@ -106,40 +107,79 @@ export async function performTTSSeparated(
     sentences,
   }
 
-  // Call new separated endpoint
+  // Call separated endpoint (supports both Supabase and non-Supabase modes)
   const response = await apiPost<{
-    audio_segments: Array<{
-      index: number
-      audio_base64: string
-      text: string
+    // Supabase enabled response
+    audio_urls?: string[]
+    durations?: number[]
+    total_duration: number
+    from_cache?: boolean
+    format: string
+    // Supabase disabled response (backward compatibility)
+    audio_segments?: Array<{
+      audio_data: string
       duration: number
     }>
-    total_duration: number
-    format: string
   }>(API_ENDPOINTS.TTS_WITH_TIMINGS_SEPARATED, request)
 
-  // Decode each audio segment
   const audioBlobs: Blob[] = []
   const durations: number[] = []
 
-  for (const segment of response.audio_segments) {
-    // Decode base64
-    const audioData = atob(segment.audio_base64)
-    const audioArray = new Uint8Array(audioData.length)
-    for (let i = 0; i < audioData.length; i++) {
-      audioArray[i] = audioData.charCodeAt(i)
+  // Check if Supabase is enabled (audio_urls present)
+  if (response.audio_urls && response.durations) {
+    console.log(`[TTS] Using Supabase audio URLs (from_cache=${response.from_cache})`)
+
+    // Fetch audio from URLs
+    for (let i = 0; i < response.audio_urls.length; i++) {
+      const url = response.audio_urls[i]
+      try {
+        const audioResponse = await fetch(url)
+        if (!audioResponse.ok) {
+          throw new Error(`Failed to fetch audio from ${url}: ${audioResponse.statusText}`)
+        }
+        const audioBlob = await audioResponse.blob()
+        audioBlobs.push(audioBlob)
+        durations.push(response.durations[i])
+      } catch (error) {
+        console.error(`[TTS] Error fetching audio segment ${i}:`, error)
+        throw new Error(`音声セグメント ${i + 1} の読み込みに失敗しました`)
+      }
     }
 
-    const mimeType = format === 'mp3' ? 'audio/mpeg' : format === 'opus' ? 'audio/opus' : `audio/${format}`
-    const audioBlob = new Blob([audioArray], { type: mimeType })
-
-    audioBlobs.push(audioBlob)
-    durations.push(segment.duration)
+    return {
+      audioBlobs,
+      durations,
+      totalDuration: response.total_duration,
+      fromCache: response.from_cache,
+    }
   }
 
-  return {
-    audioBlobs,
-    durations,
-    totalDuration: response.total_duration,
+  // Fallback: Supabase disabled, use base64 blobs (backward compatibility)
+  if (response.audio_segments) {
+    console.log('[TTS] Using base64 audio segments (Supabase not configured)')
+
+    for (const segment of response.audio_segments) {
+      // Decode base64
+      const audioData = atob(segment.audio_data)
+      const audioArray = new Uint8Array(audioData.length)
+      for (let i = 0; i < audioData.length; i++) {
+        audioArray[i] = audioData.charCodeAt(i)
+      }
+
+      const mimeType = format === 'mp3' ? 'audio/mpeg' : format === 'opus' ? 'audio/opus' : `audio/${format}`
+      const audioBlob = new Blob([audioArray], { type: mimeType })
+
+      audioBlobs.push(audioBlob)
+      durations.push(segment.duration)
+    }
+
+    return {
+      audioBlobs,
+      durations,
+      totalDuration: response.total_duration,
+    }
   }
+
+  // No valid response format
+  throw new Error('Invalid TTS response format: missing both audio_urls and audio_segments')
 }

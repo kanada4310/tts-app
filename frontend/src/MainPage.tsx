@@ -12,6 +12,7 @@ import { TTS_VOICE, TTS_FORMAT } from '@/constants/audio'
 import { MESSAGES } from '@/constants/messages'
 import { useLearningSession } from '@/hooks/useLearningSession'
 import { useAuth } from '@/hooks/useAuth'
+import { needsMigration, migrateToSupabase } from '@/utils/migration'
 import type { OCRResponse, SentenceTiming } from '@/types/api'
 import './MainPage.css'
 
@@ -36,6 +37,12 @@ export function MainPage() {
   const [showLearningDashboard, setShowLearningDashboard] = useState(false)
   const [showBookmarkList, setShowBookmarkList] = useState(false)
 
+  // Migration features
+  const [showMigrationBanner, setShowMigrationBanner] = useState(false)
+  const [isMigrating, setIsMigrating] = useState(false)
+  const [migrationProgress, setMigrationProgress] = useState<string>('')
+  const [migrationError, setMigrationError] = useState<string | null>(null)
+
   const handleSignOut = async () => {
     await signOut()
     navigate('/login')
@@ -46,6 +53,14 @@ export function MainPage() {
     const completed = localStorage.getItem(TUTORIAL_STORAGE_KEY)
     if (!completed) {
       setShowTutorial(true)
+    }
+  }, [])
+
+  // Check if migration is needed
+  useEffect(() => {
+    const needsIt = needsMigration()
+    if (needsIt) {
+      setShowMigrationBanner(true)
     }
   }, [])
 
@@ -172,17 +187,95 @@ export function MainPage() {
     if (audioUrl && audioUrl !== 'separated') {
       URL.revokeObjectURL(audioUrl)
     }
+    setAudioUrl(null)
+    setAudioSegments([])
+    setSegmentDurations([])
+    setSentenceTimings([])
 
     // Set OCR data from bookmark
     setOcrText(materialText)
     setOcrSentences(materialSentences)
     setOriginalOcrSentences(materialSentences)
 
-    // Generate audio
-    await handleGenerateSpeech(materialText)
-
-    // Set initial sentence index
+    // Set initial sentence index BEFORE generating audio
     setCurrentSentenceIndex(sentenceIndex)
+
+    // Generate audio directly using the bookmark data
+    setIsGeneratingSpeech(true)
+    setError(null)
+
+    try {
+      // Revoke previous audio URL to free memory
+      if (audioUrl && audioUrl !== 'separated') {
+        URL.revokeObjectURL(audioUrl)
+      }
+
+      console.log('[Bookmark Play] Using separated audio mode:', materialSentences.length, 'sentences')
+      console.log('[Bookmark Play] Starting from sentence index:', sentenceIndex)
+
+      const { audioBlobs, durations, totalDuration } = await performTTSSeparated(
+        materialText,
+        materialSentences,
+        TTS_VOICE,
+        TTS_FORMAT
+      )
+
+      setAudioSegments(audioBlobs)
+      setSegmentDurations(durations)
+      setAudioUrl('separated') // Flag to indicate separated mode
+      setSentenceTimings([]) // Not used in separated mode
+
+      // Start learning session
+      const preview = materialText.substring(0, 50)
+      startSession(preview, materialSentences.length)
+
+      console.log(`[Bookmark Play] Generated ${audioBlobs.length} audio segments, total: ${totalDuration}s`)
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError(MESSAGES.ERROR_TTS)
+      }
+    } finally {
+      setIsGeneratingSpeech(false)
+    }
+  }
+
+  // Handle migration from localStorage to Supabase
+  const handleMigrate = async () => {
+    setIsMigrating(true)
+    setMigrationError(null)
+    setMigrationProgress('移行を開始しています...')
+
+    try {
+      const result = await migrateToSupabase((progress) => {
+        setMigrationProgress(progress)
+      })
+
+      if (result.success) {
+        setMigrationProgress(
+          `✅ 移行完了！教材: ${result.stats.materialsCreated}個、ブックマーク: ${result.stats.bookmarksCreated}個、学習記録: ${result.stats.sessionsCreated}個`
+        )
+        // Hide banner after 5 seconds
+        setTimeout(() => {
+          setShowMigrationBanner(false)
+        }, 5000)
+      } else {
+        setMigrationError(`移行に失敗しました: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('[Migration] Error:', error)
+      setMigrationError(
+        error instanceof Error ? error.message : '移行中に予期しないエラーが発生しました'
+      )
+    } finally {
+      setIsMigrating(false)
+    }
+  }
+
+  // Dismiss migration banner
+  const handleDismissMigration = () => {
+    setShowMigrationBanner(false)
   }
 
   return (
@@ -246,6 +339,69 @@ export function MainPage() {
             <button onClick={() => setError(null)} className="error-close">
               ×
             </button>
+          </div>
+        )}
+
+        {/* Migration Banner */}
+        {showMigrationBanner && (
+          <div className="migration-banner">
+            <div className="migration-banner-content">
+              <div className="migration-banner-header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5-5 5 5M12 5v12" />
+                </svg>
+                <h3>データ移行のお知らせ</h3>
+              </div>
+
+              {!isMigrating && !migrationProgress && (
+                <>
+                  <p className="migration-banner-message">
+                    学習データとブックマークをクラウドに移行しますか？
+                    <br />
+                    移行すると、複数のデバイスでデータを同期できます。
+                  </p>
+                  <div className="migration-banner-buttons">
+                    <button
+                      className="migration-button migration-button-primary"
+                      onClick={handleMigrate}
+                    >
+                      今すぐ移行する
+                    </button>
+                    <button
+                      className="migration-button migration-button-secondary"
+                      onClick={handleDismissMigration}
+                    >
+                      後で
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {isMigrating && (
+                <div className="migration-progress">
+                  <div className="migration-spinner"></div>
+                  <p>{migrationProgress}</p>
+                </div>
+              )}
+
+              {migrationProgress && !isMigrating && !migrationError && (
+                <div className="migration-success">
+                  <p>{migrationProgress}</p>
+                </div>
+              )}
+
+              {migrationError && (
+                <div className="migration-error">
+                  <p>❌ {migrationError}</p>
+                  <button
+                    className="migration-button migration-button-secondary"
+                    onClick={handleDismissMigration}
+                  >
+                    閉じる
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

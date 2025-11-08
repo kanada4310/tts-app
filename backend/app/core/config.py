@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     openai_api_key: str
     gemini_api_key: str  # Google Gemini API key
 
+    # Supabase (Optional)
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+    supabase_anon_key: str = ""
+
     # Server Configuration
     host: str = "0.0.0.0"
     port: int = 8000

@@ -46,8 +46,11 @@ export function needsMigration(): boolean {
 
 /**
  * localStorageからSupabaseへデータ移行
+ * @param onProgress - 進捗コールバック（オプション）
  */
-export async function migrateToSupabase(): Promise<MigrationResult> {
+export async function migrateToSupabase(
+  onProgress?: (message: string) => void
+): Promise<MigrationResult> {
   const result: MigrationResult = {
     success: false,
     stats: {
@@ -58,11 +61,15 @@ export async function migrateToSupabase(): Promise<MigrationResult> {
   };
 
   try {
+    onProgress?.('ユーザー認証を確認しています...');
+
     // 1. ユーザー認証チェック
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       throw new Error('ユーザーが認証されていません');
     }
+
+    onProgress?.('移行データを読み込んでいます...');
 
     // 2. localStorageからデータ取得
     const learningDataStr = localStorage.getItem(LEARNING_DATA_KEY);
@@ -83,6 +90,8 @@ export async function migrateToSupabase(): Promise<MigrationResult> {
         });
       }
     }
+
+    onProgress?.(`教材を移行しています... (0/${materialsMap.size})`);
 
     // 4. 教材をSupabaseに保存（materials テーブル）
     const materialIdMap = new Map<string, string>(); // old hash → new UUID
@@ -107,7 +116,10 @@ export async function migrateToSupabase(): Promise<MigrationResult> {
 
       materialIdMap.set(oldMaterialId, materialRow.id);
       result.stats.materialsCreated++;
+      onProgress?.(`教材を移行しています... (${result.stats.materialsCreated}/${materialsMap.size})`);
     }
+
+    onProgress?.(`ブックマークを移行しています... (0/${learningData.bookmarks.length})`);
 
     // 5. ブックマークをSupabaseに保存（bookmarks テーブル）
     for (const bookmark of learningData.bookmarks) {
@@ -135,7 +147,10 @@ export async function migrateToSupabase(): Promise<MigrationResult> {
       }
 
       result.stats.bookmarksCreated++;
+      onProgress?.(`ブックマークを移行しています... (${result.stats.bookmarksCreated}/${learningData.bookmarks.length})`);
     }
+
+    onProgress?.(`学習記録を移行しています... (0/${learningData.sessions.length})`);
 
     // 6. 学習セッションをSupabaseに保存（learning_sessions テーブル）
     for (const session of learningData.sessions) {
@@ -156,7 +171,10 @@ export async function migrateToSupabase(): Promise<MigrationResult> {
       }
 
       result.stats.sessionsCreated++;
+      onProgress?.(`学習記録を移行しています... (${result.stats.sessionsCreated}/${learningData.sessions.length})`);
     }
+
+    onProgress?.('移行を完了しています...');
 
     // 7. 移行完了フラグを設定
     localStorage.setItem(MIGRATION_FLAG_KEY, 'true');

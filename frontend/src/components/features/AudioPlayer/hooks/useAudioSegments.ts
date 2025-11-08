@@ -15,6 +15,7 @@ interface UseAudioSegmentsOptions {
   audioRef: RefObject<HTMLAudioElement>
   audioSegments?: Blob[]
   segmentDurations?: number[]
+  externalSentenceIndex?: number
   onSegmentChange?: (index: number) => void
 }
 
@@ -22,6 +23,7 @@ export function useAudioSegments({
   audioRef,
   audioSegments,
   segmentDurations,
+  externalSentenceIndex,
   onSegmentChange,
 }: UseAudioSegmentsOptions) {
   const [segmentState, setSegmentState] = useState<SegmentState>({
@@ -51,21 +53,27 @@ export function useAudioSegments({
     const urls = audioSegments.map(blob => URL.createObjectURL(blob))
     const totalDur = (segmentDurations || []).reduce((a, b) => a + b, 0)
 
+    // Use externalSentenceIndex if provided, otherwise default to 0
+    const initialIndex = externalSentenceIndex !== undefined
+      ? Math.min(Math.max(0, externalSentenceIndex), urls.length - 1)
+      : 0
+
     console.log('[useAudioSegments] Created', urls.length, 'blob URLs')
     console.log('[useAudioSegments] Total duration:', totalDur, 'seconds')
+    console.log('[useAudioSegments] Initial index:', initialIndex)
 
     setSegmentState({
       segments: urls,
       durations: segmentDurations || [],
-      currentIndex: 0,
+      currentIndex: initialIndex,
       totalDuration: totalDur,
       isSegmentMode: true,
     })
 
-    // Load first segment
-    if (audioRef.current && urls[0]) {
-      console.log('[useAudioSegments] Loading first segment')
-      audioRef.current.src = urls[0]
+    // Load initial segment (use externalSentenceIndex if provided)
+    if (audioRef.current && urls[initialIndex]) {
+      console.log('[useAudioSegments] Loading segment', initialIndex)
+      audioRef.current.src = urls[initialIndex]
       audioRef.current.load()
     }
 
@@ -74,7 +82,7 @@ export function useAudioSegments({
       console.log('[useAudioSegments] Cleaning up', urls.length, 'blob URLs')
       urls.forEach(url => URL.revokeObjectURL(url))
     }
-  }, [audioSegments, segmentDurations])
+  }, [audioSegments, segmentDurations, externalSentenceIndex])
 
   /**
    * Switch to a specific segment by index

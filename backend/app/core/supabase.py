@@ -7,17 +7,17 @@ Supabase統合モジュール
 - ストレージアクセス
 """
 
-import os
 from typing import Optional
 from supabase import create_client, Client
 from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.config import settings
 
 
-# Supabase設定
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+# Supabase設定（config.pyのsettingsから取得）
+SUPABASE_URL = settings.supabase_url
+SUPABASE_SERVICE_KEY = settings.supabase_service_key
+SUPABASE_ANON_KEY = settings.supabase_anon_key
 
 # Supabaseクライアント（サービスロール）
 # サービスロールキーはRLS制限を無視できるため、サーバー側のみで使用
@@ -30,15 +30,15 @@ supabase_anon: Optional[Client] = None
 # 環境変数のチェックと初期化
 if SUPABASE_URL and SUPABASE_SERVICE_KEY:
     supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    print("✅ Supabase管理クライアント初期化成功")
+    print("[OK] Supabase admin client initialized")
 else:
-    print("⚠️ Supabase環境変数が設定されていません（SUPABASE_URL, SUPABASE_SERVICE_KEY）")
+    print("[WARNING] Supabase environment variables not set (SUPABASE_URL, SUPABASE_SERVICE_KEY)")
 
 if SUPABASE_URL and SUPABASE_ANON_KEY:
     supabase_anon = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
-    print("✅ Supabase匿名クライアント初期化成功")
+    print("[OK] Supabase anon client initialized")
 else:
-    print("⚠️ Supabase環境変数が設定されていません（SUPABASE_URL, SUPABASE_ANON_KEY）")
+    print("[WARNING] Supabase environment variables not set (SUPABASE_URL, SUPABASE_ANON_KEY)")
 
 
 # =====================================================

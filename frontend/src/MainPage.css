@@ -244,3 +244,172 @@
     padding: 12px 20px;
   }
 }
+
+/* Migration Banner */
+.migration-banner {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.95) 0%, rgba(118, 75, 162, 0.95) 100%);
+  color: white;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.migration-banner-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.migration-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.migration-banner-header svg {
+  flex-shrink: 0;
+}
+
+.migration-banner-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.migration-banner-message {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.migration-banner-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.migration-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.migration-button-primary {
+  background: white;
+  color: #667eea;
+}
+
+.migration-button-primary:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.migration-button-secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.migration-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.migration-progress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.migration-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.migration-progress p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.migration-success {
+  padding: 16px 0;
+}
+
+.migration-success p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.migration-error {
+  padding: 16px 0;
+}
+
+.migration-error p {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #ffcccc;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .migration-banner {
+    padding: 20px 16px;
+    margin-bottom: 20px;
+  }
+
+  .migration-banner-header h3 {
+    font-size: 18px;
+  }
+
+  .migration-banner-message {
+    font-size: 14px;
+  }
+
+  .migration-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .migration-banner-buttons {
+    flex-direction: column;
+  }
+
+  .migration-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
