@@ -54,7 +54,8 @@
       "Bash(tree:*)",
       "Bash(taskkill /F /PID 9040)",
       "Bash(taskkill:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

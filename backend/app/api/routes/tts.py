@@ -6,12 +6,16 @@ from slowapi.util import get_remote_address
 
 from app.schemas import TTSRequest, TTSErrorResponse, TTSResponse
 from app.services import openai_service
+from app.services.audio_cache_service import AudioCacheService
 from app.core.errors import TTSGenerationError
 from app.core.constants import ERROR_INTERNAL
 import base64
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
+
+# Audio cache service instance
+audio_cache_service = AudioCacheService()
 
 
 @router.post(
@@ -231,19 +235,40 @@ async def generate_speech_separated(
 
         print(f"TTS separated - Sentences: {len(tts_request.sentences)}, Voice: {tts_request.voice}, Format: {tts_request.format}")
 
-        # Generate separated audio files
-        audio_segments, total_duration = openai_service.generate_speech_separated(
+        # Try to get from cache or generate new audio
+        cache_result = await audio_cache_service.generate_or_get_cached(
+            text=tts_request.text,
             sentences=tts_request.sentences,
             voice=tts_request.voice,
             format=tts_request.format
         )
 
-        # Return JSON response
-        return JSONResponse(content={
-            "audio_segments": audio_segments,
-            "total_duration": total_duration,
-            "format": tts_request.format
-        })
+        # Check if we got URLs (Supabase enabled) or blobs (Supabase disabled)
+        if 'audio_urls' in cache_result:
+            # Supabase enabled: Return URLs
+            print(f"[TTS] Returning audio URLs (from_cache={cache_result['from_cache']})")
+            return JSONResponse(content={
+                "audio_urls": cache_result['audio_urls'],
+                "durations": cache_result['durations'],
+                "total_duration": cache_result['total_duration'],
+                "from_cache": cache_result['from_cache'],
+                "format": tts_request.format
+            })
+        else:
+            # Supabase disabled: Fallback to binary blobs (backward compatibility)
+            print(f"[TTS] Supabase not configured, returning base64 blobs")
+            audio_segments = [
+                {
+                    "audio_data": base64.b64encode(blob).decode('utf-8'),
+                    "duration": duration
+                }
+                for blob, duration in zip(cache_result['audio_blobs'], cache_result['durations'])
+            ]
+            return JSONResponse(content={
+                "audio_segments": audio_segments,
+                "total_duration": cache_result['total_duration'],
+                "format": tts_request.format
+            })
 
     except TTSGenerationError as e:
         import traceback

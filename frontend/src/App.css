@@ -1,246 +1,47 @@
-/* App Container */
-.app {
+/* App.tsx用の最小限のスタイル */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ローディングスピナー */
+.loading-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
-}
-
-/* Header */
-.app-header {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.03) 0%, rgba(118, 75, 162, 0.03) 100%);
-  backdrop-filter: blur(10px);
-  padding: 24px 32px;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
-  border-bottom: 1px solid rgba(102, 126, 234, 0.1);
-}
-
-.header-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 24px;
-}
-
-.header-text {
-  flex: 1;
-}
-
-.app-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.app-header p {
-  margin: 0;
-  font-size: 16px;
-  color: #666;
-}
-
-.tutorial-trigger-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border: 1px solid #667eea;
-  border-radius: 8px;
-  color: #667eea;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease-out;
-  min-height: 40px;
-}
-
-.tutorial-trigger-button:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-  transform: translateY(-1px);
-}
-
-.tutorial-trigger-button svg {
-  flex-shrink: 0;
-}
-
-/* Header Buttons Container */
-.header-buttons {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-/* Learning & Bookmark Buttons */
-.header-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  color: #1f2937;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease-out;
-  min-height: 40px;
-}
-
-.header-button:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  border-color: #667eea;
-  color: #667eea;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-}
-
-.header-button span:first-child {
-  font-size: 18px;
-}
-
-/* Main Content */
-.app-main {
-  flex: 1;
-  padding: 40px 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* Error Banner */
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  background-color: #ffebee;
-  border-left: 4px solid #f44336;
-  border-radius: 8px;
-  color: #c62828;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.error-banner svg {
-  flex-shrink: 0;
-}
-
-.error-banner span {
-  flex: 1;
-  font-size: 14px;
-}
-
-.error-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: #c62828;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.3s ease;
-}
-
-.error-close:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-/* Sections */
-.upload-section,
-.editor-section,
-.player-section {
-  margin-bottom: 32px;
-}
-
-/* Re-upload Section (shown at bottom after audio generation) */
-.reupload-section {
-  margin-top: 32px;
-  padding: 24px;
-  text-align: center;
-}
-
-.reupload-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 28px;
-  font-size: 16px;
-  font-weight: 600;
-  color: white;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  transition: all 0.2s ease;
+  color: white;
 }
 
-.reupload-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
 }
 
-.reupload-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.reupload-button svg {
-  flex-shrink: 0;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .app-header {
-    padding: 20px 16px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .app-header h1 {
-    font-size: 24px;
-  }
-
-  .app-header p {
-    font-size: 14px;
-  }
-
-  .tutorial-trigger-button {
-    align-self: stretch;
-    justify-content: center;
-    padding: 12px 20px;
-  }
-
-  .app-main {
-    padding: 24px 16px;
-  }
-
-  .reupload-section {
-    padding: 16px;
-  }
-
-  .reupload-button {
-    font-size: 14px;
-    padding: 12px 20px;
-  }
+.loading-container p {
+  font-size: 16px;
+  font-weight: 500;
 }
