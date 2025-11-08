@@ -1,6 +1,52 @@
 # TODO
 
-最終更新: 2025-11-05（セッション#26: ブックマーク音声再生機能完了）
+最終更新: 2025-11-08（セッション#27: Supabase移行 フェーズ1 完了）
+
+## 🟢 完了済み（セッション#27で実装完了）
+
+### Supabase移行 フェーズ1: 基盤構築 ✅ 完了
+
+**完了日**: 2025-11-08（セッション#27）
+**所要時間**: 約2時間（実績）
+
+- [x] **データベーススキーマ作成** ✅
+  - [x] schema.sql 作成（6テーブル、約200行）
+  - [x] audio_cache, materials, bookmarks, learning_sessions, vocabulary
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **RLSポリシー設定** ✅
+  - [x] rls_policies.sql 作成（約150行）
+  - [x] ユーザーごとのデータ分離、audio_cacheは全ユーザー共有
+  - 所要時間: 20分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **Supabaseセットアップガイド作成** ✅
+  - [x] SUPABASE_SETUP_GUIDE.md 作成（約500行）
+  - [x] ステップバイステップの詳細手順（30分で完了）
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **フロントエンド Supabaseクライアント統合** ✅
+  - [x] supabaseClient.ts 作成（認証、DB、Storage）
+  - [x] @supabase/supabase-js 依存関係追加
+  - 所要時間: 20分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **バックエンド Supabase統合** ✅
+  - [x] supabase.py 作成（JWT検証、DB/Storage）
+  - [x] supabase==2.9.0 依存関係追加
+  - 所要時間: 20分
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [x] **環境変数テンプレート更新** ✅
+  - [x] frontend/.env.example と backend/.env.example 更新
+  - 所要時間: 5分
+  - ROI: ⭐⭐⭐⭐⭐
+
+**セッション#27合計**: 約2時間
+
+---
 
 ## 🟢 完了済み（セッション#25-26で実装完了）
 
@@ -289,15 +335,98 @@
 
 ---
 
-## 🔴 最優先（次回セッション#20）
+## 🔴 最優先（次回セッション#28）
 
-現在、最優先のタスクはありません。全ての計画タスクが完了しました。
+### ✅ ユーザー作業: Supabaseプロジェクト作成（所要時間: 約30分）
 
-次回セッションでは、以下の方向性から選択できます：
-1. UI改善プラン Phase 2-6の実装（インタラクティブ要素、アニメーション）
-2. 生徒による実地テストとフィードバック収集
-3. PWA対応（Service Worker、オフライン機能）
-4. パフォーマンス最適化
+**前提条件**: セッション#27でSupabase基盤構築が完了しました。
+
+**実施手順**: `docs/SUPABASE_SETUP_GUIDE.md` を参照
+
+1. **Supabaseアカウント作成とプロジェクト作成**（10分）
+   - https://supabase.com でアカウント作成（GitHub推奨）
+   - 新規プロジェクト: Name `tts-learning-app`, Region `Tokyo`
+   - Database Password 設定（必ずメモ）
+
+2. **データベーススキーマ作成**（5分）
+   - SQL Editorで `database/schema.sql` を実行
+   - SQL Editorで `database/rls_policies.sql` を実行
+
+3. **Storageバケット作成**（3分）
+   - Storage → Create bucket: `audio-files` (Public)
+
+4. **API Keys取得**（2分）
+   - Settings → API で以下をコピー:
+     - Project URL
+     - anon public key
+     - service_role key（⚠️絶対に公開しない）
+
+5. **環境変数設定**（5分）
+   - `frontend/.env` と `backend/.env` を作成
+   - API Keys を設定
+
+6. **依存関係インストール**（2分）
+   - フロントエンド: `cd frontend && npm install`
+   - バックエンド: `cd backend && pip install -r requirements.txt`
+
+---
+
+### 📋 次回セッション#28で実施（Supabase移行 フェーズ2: 認証UI実装）
+
+**所要時間**: 3-4時間（見積もり）
+**優先度**: 🔴 最優先
+
+#### タスク1: 認証UIの実装（1-2時間）
+
+- [ ] **ログイン・サインアップ画面**
+  - [ ] `frontend/src/pages/Login.tsx` 作成
+  - [ ] `frontend/src/pages/SignUp.tsx` 作成
+  - [ ] フォームバリデーション、エラーハンドリング
+  - [ ] Google/GitHub OAuth ボタン追加
+  - 所要時間: 1時間
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [ ] **パスワードリセット機能**
+  - [ ] `frontend/src/pages/ResetPassword.tsx` 作成
+  - [ ] メール送信フロー実装
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐
+
+- [ ] **保護されたルート**
+  - [ ] `frontend/src/components/ProtectedRoute.tsx` 作成
+  - [ ] React Routerとの統合
+  - [ ] 未ログイン時のリダイレクト
+  - 所要時間: 30分
+  - ROI: ⭐⭐⭐⭐⭐
+
+#### タスク2: localStorage → Supabase 移行ツール（1時間）
+
+- [ ] **移行スクリプト作成**
+  - [ ] `frontend/src/utils/migration.ts` 作成
+  - [ ] localStorageから学習データ・ブックマーク取得
+  - [ ] Supabaseへの自動移行（materials, bookmarks, learning_sessions）
+  - [ ] 移行完了フラグ管理（`migration_completed: true`）
+  - 所要時間: 1時間
+  - ROI: ⭐⭐⭐⭐⭐
+
+#### タスク3: 音声キャッシュサービス実装（バックエンド）（2-3時間）
+
+- [ ] **音声キャッシュサービス作成**
+  - [ ] `backend/app/services/audio_cache_service.py` 作成
+  - [ ] SHA-256ハッシュ生成、キャッシュ検索
+  - [ ] Supabase Storage統合（アップロード、公開URL取得）
+  - [ ] audio_cache テーブルへの保存
+  - 所要時間: 2時間
+  - ROI: ⭐⭐⭐⭐⭐
+
+- [ ] **TTSエンドポイント修正**
+  - [ ] `backend/app/api/routes/tts.py` 更新
+  - [ ] キャッシュヒット時は即座に返却
+  - [ ] キャッシュミス時はOpenAI TTS生成→保存
+  - 所要時間: 1時間
+  - ROI: ⭐⭐⭐⭐⭐
+
+**次回セッション#28合計**: 3-4時間
 
 ---
 

@@ -51,7 +51,10 @@
       "Bash(del:*)",
       "Bash(mv:*)",
       "Bash(rm:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(taskkill /F /PID 9040)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []

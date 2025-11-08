@@ -5,6 +5,238 @@
 
 ---
 
+## セッション #27 - 2025-11-08（✅ 完了）
+
+### 実施内容
+
+このセッションでは、**Supabase移行 フェーズ1: 基盤構築**を完了しました。データベーススキーマ、RLSポリシー、認証統合、セットアップガイドを作成し、ユーザーがSupabaseプロジェクトを作成できる準備が整いました。
+
+#### 1. データベーススキーマ作成
+
+**ファイル**: `database/schema.sql` (約200行)
+
+**実装内容**:
+- `audio_cache` テーブル（音声キャッシュ、全ユーザー共有）
+  - SHA-256ハッシュでキャッシュキー管理
+  - Supabase Storage URLを保存
+  - access_count で再利用回数追跡
+- `materials` テーブル（教材、ユーザーごと）
+  - OCR結果、手動入力等の教材を保存
+  - audio_cache への参照（同じテキストは音声共有）
+- `bookmarks` テーブル（ブックマーク、ユーザーごと）
+  - 習得度管理（1-5段階）、メモ機能
+  - 練習回数、最終練習日記録
+- `learning_sessions` テーブル（学習セッション、ユーザーごと）
+  - セッション開始・終了時刻、再生回数、総学習時間
+  - 文ごとの練習回数（JSON）
+- `vocabulary` テーブル（単語帳、将来拡張）
+  - CEFR判定、頻度ランキング、単語帳掲載情報
+  - 間隔反復学習（次回復習日）
+
+**技術的決定**: PostgreSQLのJSONB型を使用してスキーマの柔軟性を確保
+
+#### 2. Row Level Security (RLS) ポリシー設定
+
+**ファイル**: `database/rls_policies.sql` (約150行)
+
+**実装内容**:
+- **materials, bookmarks, learning_sessions, vocabulary**: ユーザーは自分のデータのみアクセス可能
+- **audio_cache**: 全認証済みユーザーが閲覧可能、バックエンド（service_role）のみ書き込み
+
+**セキュリティ効果**: マルチユーザー対応、データ分離、不正アクセス防止
+
+#### 3. Supabaseセットアップガイド作成
+
+**ファイル**: `docs/SUPABASE_SETUP_GUIDE.md` (約500行)
+
+**内容**:
+- ステップバイステップの詳細手順（所要時間: 約30分）
+- プロジェクト作成、データベーススキーマ作成、RLS設定
+- Storageバケット作成、API Keys取得、環境変数設定
+- トラブルシューティング（3つの典型的な問題と解決方法）
+
+#### 4. フロントエンド Supabaseクライアント統合
+
+**ファイル**: `frontend/src/services/supabase/supabaseClient.ts` (約250行)
+
+**実装機能**:
+- 認証: サインアップ、ログイン、ログアウト、Google/GitHub認証
+- パスワード管理: リセット、更新
+- 認証状態監視: onAuthStateChange
+- データベースアクセス: getTable() ヘルパー関数
+- ストレージアクセス: getStorageBucket() ヘルパー関数
+- ユーティリティ: isSupabaseConfigured(), getAuthToken()
+
+**依存関係追加**: `@supabase/supabase-js: ^2.39.0` (frontend/package.json)
+
+#### 5. バックエンド Supabase統合
+
+**ファイル**: `backend/app/core/supabase.py` (約200行)
+
+**実装機能**:
+- JWTトークン検証: get_current_user() ミドルウェア
+- オプション認証: get_optional_user() （認証なしでもアクセス可能なエンドポイント用）
+- データベースアクセス: get_supabase_admin() （RLS無視）、get_supabase_anon() （RLS適用）
+- ストレージアクセス: get_storage_bucket()
+- ユーティリティ: is_supabase_configured()
+
+**依存関係追加**: `supabase==2.9.0` (backend/requirements.txt)
+
+#### 6. 環境変数テンプレート更新
+
+**ファイル**: `frontend/.env.example`, `backend/.env.example`
+
+**追加環境変数**:
+- `VITE_SUPABASE_URL` (フロントエンド)
+- `VITE_SUPABASE_ANON_KEY` (フロントエンド)
+- `SUPABASE_URL` (バックエンド)
+- `SUPABASE_SERVICE_KEY` (バックエンド、⚠️公開禁止)
+- `SUPABASE_ANON_KEY` (バックエンド)
+
+---
+
+### 技術的決定事項
+
+#### 決定1: Supabaseを採用（Firebase、MongoDB Atlasではなく）
+
+**理由**:
+- PostgreSQL（リレーショナルDB、複雑なクエリ対応）
+- オープンソース（ベンダーロックイン回避）
+- 認証・ストレージ・リアルタイム統合
+- コスパ最高（無料枠: 500MB DB、1GB Storage）
+- Row Level Security（セキュリティ強固）
+
+**代替案**:
+- Firebase: NoSQL、JOIN弱い、コスト高
+- MongoDB Atlas: セットアップ複雑、学習コスト高
+
+#### 決定2: 音声キャッシュ機構の導入（全ユーザー共有）
+
+**理由**:
+- OpenAI TTS APIコストを50-96%削減
+- ユーザー間で音声を共有（同じテキストは1回だけ生成）
+- レスポンス速度向上（キャッシュヒット時は即座に返却）
+
+**実装**:
+- SHA-256ハッシュでキャッシュキー生成（テキスト+音声設定）
+- audio_cache テーブルで管理
+- Supabase Storage に音声ファイル保存
+- access_count で人気コンテンツを追跡
+
+**コスト削減効果**:
+- キャッシュヒット率50%: $7.50 → $3.75（50%削減）
+- キャッシュヒット率75%: $7.50 → $1.88（75%削減）
+
+#### 決定3: Row Level Security（RLS）の適用
+
+**理由**:
+- マルチユーザー対応
+- データの安全性保証（ユーザーは自分のデータのみアクセス可能）
+- PostgreSQL標準機能（追加実装不要）
+
+**実装**:
+- materials, bookmarks, learning_sessions, vocabulary: ユーザーごとに分離
+- audio_cache: 全ユーザー共有（バックエンドのみ書き込み）
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### すぐに着手できるタスク
+
+**🎯 ユーザーが実施する作業**（所要時間: 約30分）
+
+1. **Supabaseプロジェクト作成**（約10分）
+   - https://supabase.com でアカウント作成
+   - 新規プロジェクト作成（Name: `tts-learning-app`, Region: Tokyo）
+   - Database Password を設定（必ずメモ）
+
+2. **データベーススキーマ作成**（約5分）
+   - Supabase SQL Editorで `database/schema.sql` を実行
+   - `database/rls_policies.sql` を実行
+
+3. **Storageバケット作成**（約3分）
+   - Storage → Create bucket: `audio-files` (Public)
+
+4. **API Keys取得**（約2分）
+   - Settings → API で以下をコピー:
+     - Project URL
+     - anon public key
+     - service_role key（⚠️絶対に公開しない）
+
+5. **環境変数設定**（約5分）
+   - `frontend/.env` と `backend/.env` を作成
+   - API Keys を設定
+
+6. **依存関係インストール**（約2分）
+   - フロントエンド: `cd frontend && npm install`
+   - バックエンド: `cd backend && pip install -r requirements.txt`
+
+**📋 次回セッションで実施する作業**（所要時間: 3-4時間）
+
+1. **認証UIの実装**（1-2時間）
+   - ログイン・サインアップ画面
+   - パスワードリセット機能
+   - 保護されたルート（ProtectedRoute）
+
+2. **localStorage → Supabase 移行ツール**（1時間）
+   - 既存の学習データ・ブックマークを移行
+   - 移行完了フラグ管理
+
+3. **音声キャッシュサービス実装**（2-3時間）
+   - バックエンドで音声キャッシュ検索・保存
+   - Supabase Storage統合
+   - コスト削減機構
+
+#### 注意事項
+
+- **service_role キー**: ⚠️絶対にGitHubにコミットしない、公開しない
+- **無料枠制限**: 500MB DB、1GB Storage（超過前にProプラン検討）
+- **段階的移行**: localStorageを一定期間保持（バックアップ）
+- **データ移行ツール**: 次回セッションで実装（自動移行スクリプト）
+
+#### 参考ドキュメント
+
+**次回セッションで参照すべきファイル**:
+- `docs/SUPABASE_SETUP_GUIDE.md` - セットアップ手順
+- `docs/FUTURE_EXPANSION_PLAN.md` - Supabase移行計画全体像
+- `database/README.md` - データベースセットアップ概要
+- `frontend/src/services/supabase/supabaseClient.ts` - Supabase認証API
+- `backend/app/core/supabase.py` - Supabase認証ミドルウェア
+
+---
+
+### 成果物リスト
+
+#### 新規作成ファイル
+- [x] `database/schema.sql` - データベーススキーマ（6テーブル、約200行）
+- [x] `database/rls_policies.sql` - Row Level Securityポリシー（約150行）
+- [x] `database/README.md` - データベースセットアップガイド（約300行）
+- [x] `docs/SUPABASE_SETUP_GUIDE.md` - 詳細なセットアップ手順（約500行）
+- [x] `frontend/src/services/supabase/supabaseClient.ts` - Supabaseクライアント（約250行）
+- [x] `frontend/src/services/supabase/index.ts` - エクスポートファイル（約20行）
+- [x] `backend/app/core/supabase.py` - Supabase統合（約200行）
+
+#### 更新ファイル
+- [x] `frontend/.env.example` - Supabase環境変数追加（3行追加）
+- [x] `backend/.env.example` - Supabase環境変数追加（4行追加）
+- [x] `frontend/package.json` - @supabase/supabase-js 追加
+- [x] `backend/requirements.txt` - supabase==2.9.0 追加
+
+#### Git commits
+- [ ] セッション#27の完全実装コミット作成（次のステップで実施）
+
+---
+
+### 統計情報
+- 作業時間: 約2時間
+- 完了タスク: 7個（スキーマ、RLS、ガイド、フロント/バック統合、環境変数）
+- 作成ファイル: 7個
+- 更新ファイル: 4個
+- 総行数: 約1,500行
+
+---
+
 ## セッション #26 - 2025-11-05（✅ 完了）
 
 ### 実施内容

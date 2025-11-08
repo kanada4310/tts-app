@@ -1,17 +1,18 @@
 # プロジェクト進捗サマリー
 
-最終更新: 2025-11-05
+最終更新: 2025-11-08
 
-## 📊 全体進捗: 100%（学習機能完全実装完了）
+## 📊 全体進捗: 100%（Supabase移行 フェーズ1 完了）
 
 ```
 [▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓] 100%
 ```
 
 **注**:
-- UI改善プラン Phase 2-6は既に実装済みであることを確認しました（セッション#23）
+- UI改善プラン Phase 2-6は既に実装済み（セッション#23）
 - 学習機能（学習記録・ブックマーク・音声再生）完全実装完了（セッション#25-26）
-- 今後の拡張設計書（Supabase移行計画）作成完了（セッション#26）
+- Supabase移行計画作成完了（セッション#26）
+- **Supabase移行 フェーズ1: 基盤構築 完了（セッション#27）**
 
 ## ✅ 完了した項目
 
@@ -28,6 +29,12 @@
 - [x] AUDIOPLAYER_REFACTORING.md - AudioPlayerリファクタリング計画書（700行）
 - [x] LEARNING_FEATURES_DESIGN.md - 学習機能詳細設計書（セッション#24、1,200行）
 - [x] FUTURE_EXPANSION_PLAN.md - 今後の拡張設計書（Supabase移行計画）（セッション#26、1,200行）
+- [x] SUPABASE_SETUP_GUIDE.md - Supabaseセットアップガイド（セッション#27、500行）
+
+### データベース（100%、セッション#27で完了）
+- [x] database/schema.sql - データベーススキーマ（6テーブル、約200行）
+- [x] database/rls_policies.sql - Row Level Securityポリシー（約150行）
+- [x] database/README.md - データベースセットアップ概要（約300行）
 
 ### セッション管理（100%）
 - [x] docs/sessions/TODO.md
@@ -45,9 +52,9 @@
 
 ### バックエンド（100%）
 - [x] プロジェクト構造（ディレクトリ、__init__.py）
-- [x] requirements.txt（依存関係定義、pydub追加）
+- [x] requirements.txt（依存関係定義、pydub、supabase追加）
 - [x] FastAPI基本設定（main.py, config.py, constants.py）
-- [x] 環境変数設定（.env.example）
+- [x] 環境変数設定（.env.example、Supabase環境変数追加）
 - [x] Pydanticスキーマ（schemas/ocr.py, schemas/tts.py）
 - [x] Claude APIサービス（services/claude_service.py、参考用に保持）
 - [x] Gemini APIサービス（services/gemini_service.py、現行OCR）
@@ -69,6 +76,10 @@
   - [x] /api/tts-with-timings（JSON: base64音声+タイミング）
 - [x] エラーハンドリング（core/errors.py）
 - [x] レート制限（SlowAPI統合）
+- [x] Supabase統合（core/supabase.py、セッション#27）
+  - [x] JWTトークン検証（get_current_user）
+  - [x] データベースアクセス（get_supabase_admin, get_supabase_anon）
+  - [x] ストレージアクセス（get_storage_bucket）
 - [x] ユニットテスト（53テスト、100%成功）
 - [x] ローカル環境動作確認（サーバー起動成功）
 
@@ -81,6 +92,10 @@
   - [x] performOCRMultiple（複数画像）
   - [x] performTTS（標準TTS）
   - [x] performTTSWithTimings（正確なタイムスタンプ付きTTS）
+- [x] Supabase統合（services/supabase/supabaseClient.ts、セッション#27）
+  - [x] 認証（サインアップ、ログイン、ログアウト、Google/GitHub OAuth）
+  - [x] データベースアクセス（getTable）
+  - [x] ストレージアクセス（getStorageBucket）
 - [x] ImageUploadコンポーネント
   - [x] 複数画像アップロード（最大10枚）
   - [x] 進捗表示（圧縮、OCR）
@@ -206,13 +221,24 @@
 - [x] PWAアイコン作成 ✅ - セッション#21で完了
 - [x] インストールプロンプトUI ✅ - セッション#21で完了
 
+**マイルストーン 6: Supabase移行（進行中）**
+- [x] フェーズ1: 基盤構築 ✅ - セッション#27で完了
+  - [x] データベーススキーマ作成（schema.sql）
+  - [x] RLSポリシー設定（rls_policies.sql）
+  - [x] Supabaseセットアップガイド作成
+  - [x] フロントエンドSupabaseクライアント統合
+  - [x] バックエンドSupabase統合
+- [ ] フェーズ2: 認証UI実装（次回セッション#28）
+- [ ] フェーズ3: localStorage → Supabase移行ツール
+- [ ] フェーズ4: 音声キャッシュサービス実装
+
 ## 📈 開発速度
 
-- セッション数: 23（セッション#23: UI改善プラン Phase 2-6確認、✅完了）
-- 平均セッション時間: 1.6時間
-- 総開発時間: 43時間（セッション#23: +1時間）
-- 完了タスク数: 173項目（セッション#23: +3項目）
-- コミット数: 36（セッション#23: +2コミット予定）
+- セッション数: 27（セッション#27: Supabase移行 フェーズ1 完了、✅完了）
+- 平均セッション時間: 1.7時間
+- 総開発時間: 45時間（セッション#27: +2時間）
+- 完了タスク数: 180項目（セッション#27: +7項目）
+- コミット数: 36（セッション#27: +1コミット予定）
 
 ## 🔗 リポジトリ・デプロイ
 
