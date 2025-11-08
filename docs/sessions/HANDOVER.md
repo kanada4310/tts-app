@@ -5,6 +5,227 @@
 
 ---
 
+## セッション #29 - 2025-11-08（✅ 完了）
+
+### 実施内容
+
+このセッションでは、**Supabase移行 フェーズ3: テスト＋UI実装＋バグ修正**を完了しました。バックエンドの環境変数設定を修正し、フロントエンドのAPI層をSupabase対応に更新。移行ツールUIを実装し、ブックマーク音声再生の重大なバグを修正しました。全機能のテストを完了し、ローカル環境での動作を確認しました。
+
+#### 1. バックエンド設定修正（25分）
+
+**問題**: Supabase環境変数が認識されず、「Supabaseが設定されていません」エラーが発生
+
+**解決**:
+- `backend/app/core/config.py`: Settings classに3つのフィールド追加
+  - `supabase_url: str = ""`
+  - `supabase_service_key: str = ""`
+  - `supabase_anon_key: str = ""`
+- `backend/app/core/supabase.py`: os.getenv() → settings参照に変更
+- `backend/app/core/supabase.py`: Unicode絵文字 → ASCII文字（"✅" → "[OK]"）
+
+**技術的決定**:
+- **Pydantic Settings使用**: .envファイルの自動読み込み、型安全性
+- **os.getenv()問題**: 手動で.envを読み込まないと環境変数が取得できない
+
+**変更ファイル**: `backend/app/core/config.py`, `backend/app/core/supabase.py`
+
+#### 2. フロントエンドAPI修正（1時間）
+
+**実装内容**:
+- `frontend/src/services/api/tts.ts`: performTTSSeparated()を修正
+  - Supabase対応: `audio_urls`（URL配列）から音声をフェッチ
+  - 後方互換性: `audio_segments`（base64）もサポート
+  - `from_cache`フラグ処理追加
+  - デュアルモード対応（Supabase有効/無効）
+
+**技術的決定**:
+- **URL vs base64**: Supabase有効時はStorage URL、無効時はbase64
+- **フェッチ処理**: fetch() → Blob生成
+- **エラーハンドリング**: 各セグメントのフェッチ失敗を個別に処理
+
+**変更ファイル**: `frontend/src/services/api/tts.ts`
+
+#### 3. 移行ツールUI実装（1時間15分）
+
+**実装内容**:
+- `frontend/src/MainPage.tsx`: 移行バナー追加
+  - 移行確認ダイアログ（「今すぐ移行する」「後で」ボタン）
+  - 進捗表示（materials: X個、bookmarks: Y個、sessions: Z個）
+  - 移行完了メッセージ（5秒後自動非表示）
+  - エラーハンドリング
+- `frontend/src/MainPage.css`: バナースタイル（168行追加）
+  - 紫青グラデーション背景
+  - スライドダウンアニメーション
+  - スピナーアニメーション
+- `frontend/src/utils/migration.ts`: onProgressコールバック追加
+
+**技術的決定**:
+- **進捗表示**: コールバック関数でリアルタイム更新
+- **自動非表示**: 成功時は5秒後に自動でバナーを閉じる
+- **却下機能**: 「後で」ボタンでバナーを閉じる（次回起動時に再表示）
+
+**変更ファイル**: `frontend/src/MainPage.tsx`, `frontend/src/MainPage.css`, `frontend/src/utils/migration.ts`
+
+#### 4. ブックマーク音声再生バグ修正（1時間30分）
+
+**問題**: ブックマークから音声再生をクリックしても、AudioPlayerが全く応答しない。テキストが認識されていないように見える。
+
+**原因**:
+1. **React状態更新の非同期性**: `setOcrSentences()`直後に`handleGenerateSpeech()`を呼んでも、`ocrSentences`はまだ更新されていない
+2. **タイミング問題**: `setCurrentSentenceIndex()`が音声生成の**後**に呼ばれていた
+3. **初期インデックス未対応**: `useAudioSegments`が常にindex 0から開始
+
+**解決**:
+- `frontend/src/MainPage.tsx`: `handleBookmarkPlay()`を完全リライト
+  - `performTTSSeparated()`を直接呼び出し（materialSentencesを引数として渡す）
+  - `setCurrentSentenceIndex()`を音声生成の**前**に実行
+  - デバッグログ追加（`[Bookmark Play]`プレフィックス）
+- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`: `externalSentenceIndex` propを追加
+- `frontend/src/components/features/AudioPlayer/hooks/useAudioSegments.ts`: externalSentenceIndex対応
+  - 初期インデックスを外部から指定可能に
+  - useEffectの依存配列に追加
+
+**技術的決定**:
+- **直接呼び出し**: 状態更新を待たず、関数に直接値を渡す
+- **インデックス指定**: propsで初期インデックスを受け取る設計
+
+**変更ファイル**:
+- `frontend/src/MainPage.tsx`
+- `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx`
+- `frontend/src/components/features/AudioPlayer/hooks/useAudioSegments.ts`
+
+---
+
+### 発生した問題と解決
+
+#### 問題1: Supabase環境変数が認識されない
+
+**症状**: バックエンド起動時に「[WARNING] Supabase environment variables not set」
+
+**原因**: `config.py`のSettingsクラスにSupabase関連フィールドが未定義
+
+**解決方法**:
+1. Settings classに3つのフィールド追加
+2. デフォルト値を空文字列に設定（Optional）
+
+**所要時間**: 15分
+
+#### 問題2: Unicode絵文字エンコードエラー
+
+**症状**: `UnicodeEncodeError: 'cp932' codec can't encode character '\u2705'`
+
+**原因**: Windows コンソール（cp932）が絵文字をサポートしていない
+
+**解決方法**: "✅" → "[OK]"、"⚠️" → "[WARNING]"に変更
+
+**所要時間**: 10分
+
+#### 問題3: ブックマーク再生時にプレイヤーが反応しない
+
+**症状**:
+- 「🔊 この文から音声再生」ボタンをクリックしても何も起こらない
+- AudioPlayerが表示されない
+- バックエンドログで`/api/tts`（通常TTS）が呼ばれていた（正しくは`/api/tts-with-timings-separated`）
+
+**原因**:
+1. `handleGenerateSpeech()`が内部で`ocrSentences`状態を参照するが、`setOcrSentences()`直後では未更新
+2. `setCurrentSentenceIndex()`が音声生成の後に実行されていた
+
+**解決方法**:
+1. `handleBookmarkPlay()`を完全リライト
+2. `performTTSSeparated()`を直接呼び出し、`materialSentences`を引数として渡す
+3. `setCurrentSentenceIndex()`を音声生成の**前**に実行
+4. `externalSentenceIndex` propを`useAudioSegments`に追加
+
+**所要時間**: 1時間30分
+
+---
+
+### テスト結果
+
+#### ✅ Google OAuth認証テスト（5分）
+- Googleアカウントでログイン成功
+- ログアウト機能正常
+- ブラウザコンソールエラーなし
+
+#### ✅ 音声キャッシュテスト（10分）
+- 初回生成: キャッシュミス（`from_cache=False`）
+- 2回目: キャッシュヒット（`from_cache=True`）
+- Supabase Storageに保存確認
+- バックエンドログ確認: `[TTS] Returning audio URLs (from_cache=True)`
+
+#### ✅ 学習記録・ブックマーク機能テスト（15分）
+- 学習セッション記録: 正常保存
+- ブックマーク作成: ☆マークで追加成功
+- ブックマークから再生: 指定文から開始成功
+- バックエンドログ確認: `/api/tts-with-timings-separated`が正しく呼ばれている
+
+---
+
+### 次セッションへの引き継ぎ事項
+
+#### 🎯 すぐに着手できるタスク
+
+TODO.mdによると、以下のタスクが最優先です：
+
+1. **🔴 Railway環境変数設定**（15分）
+   - SUPABASE_URL, SUPABASE_SERVICE_KEY を追加
+   - Railwayダッシュボードで設定
+
+2. **🔴 Vercel環境変数設定**（15分）
+   - VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY を追加
+   - Vercelダッシュボードで設定
+
+3. **🔴 本番環境E2Eテスト**（30分）
+   - Google OAuth認証テスト
+   - 音声キャッシュヒット/ミステスト
+   - ブックマーク音声再生テスト
+
+#### 注意事項
+
+- **Supabase URL**: 本番環境でも同じSupabaseプロジェクトを使用
+- **CORS設定**: 本番URLがCORS_ORIGINSに含まれているか確認
+- **キャッシュテスト**: 同じテキストで2回TTS生成して、2回目がキャッシュヒットすることを確認
+
+---
+
+### 成果物リスト
+
+#### 更新ファイル
+- [x] `backend/app/core/config.py` - Supabase環境変数フィールド追加
+- [x] `backend/app/core/supabase.py` - os.getenv() → settings参照、Unicode対応
+- [x] `frontend/src/services/api/tts.ts` - performTTSSeparated() audio_urls対応
+- [x] `frontend/src/utils/migration.ts` - onProgress コールバック追加
+- [x] `frontend/src/MainPage.tsx` - 移行バナー追加、handleBookmarkPlay()リライト
+- [x] `frontend/src/MainPage.css` - 移行バナースタイル（168行追加）
+- [x] `frontend/src/components/features/AudioPlayer/AudioPlayer.tsx` - externalSentenceIndex prop追加
+- [x] `frontend/src/components/features/AudioPlayer/hooks/useAudioSegments.ts` - 初期インデックス指定対応
+
+#### Git commits
+- [x] `d3acb49` - セッション#29: Supabase移行 フェーズ3完了 - テスト＋UI実装＋バグ修正
+- [x] `a9cc33c` - docs: TODO.md更新 - セッション#29完了記録
+
+---
+
+### 統計情報
+- 作業時間: 約3時間
+- 完了タスク: 9個
+  1. performTTSSeparated() 修正（audio_urls対応）
+  2. 移行ツールUI実装（移行バナー追加）
+  3. TypeScriptコンパイルチェック
+  4. Google OAuth認証テスト
+  5. 音声キャッシュ機能テスト
+  6. 学習記録機能テスト
+  7. ブックマーク音声再生バグ修正
+  8. Gitコミット作成
+  9. TODO.md更新（フェーズ3完了チェック）
+- コミット数: 2
+- 変更ファイル: 8
+- 追加行数: 約442行
+- 削除行数: 約44行
+
+---
+
 ## セッション #28 - 2025-11-08（✅ 完了）
 
 ### 実施内容
